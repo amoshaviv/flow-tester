@@ -3,7 +3,7 @@ export DISPLAY=:99
 
 cd ~/flow-tester/agent
 git pull origin main
-source ~/flow-tester/agent/.venv/bin/activate
+source .venv/bin/activate
 
 python3 consumer.py
 # sudo shutdown -h now
