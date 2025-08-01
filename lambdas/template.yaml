@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  flow-tester
+
+Transform:
+  - AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 20
+  Api:
+    BinaryMediaTypes:
+      - image/jpeg
+      - text/html
+    Cors:
+      AllowMethods: "'GET,POST,DELETE,OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+Resources:
+  AddFlowTestRun:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: add-flow-test-run
+      Handler: src/api/flows.addFlowTestRunHandler
+      Runtime: nodejs22.x
+      Architectures:
+        - x86_64
+      MemorySize: 256
+      Timeout: 100
+      Description: Add Flow Test Run
+      Policies:
+        - AmazonEC2FullAccess
+        - AmazonSQSFullAccess
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /flows/:flowId/runs
+            Method: POST
+  
+Outputs:
+  WebEndpoint:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
