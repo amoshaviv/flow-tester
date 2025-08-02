@@ -29,7 +29,7 @@ def base64_to_image(base64_string: str, output_filename: str):
 
 async def main():
     agent = Agent(
-        task="Go to Booking.com. Take a screenshot.",
+        task="Go to https://news.ycombinator.com/. Return the top 10 posts as a JSON array.",
         llm=llm,
         browser=browser,
     )
