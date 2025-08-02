@@ -31,20 +31,26 @@ def save_result(id, result):
     number_screenshots = 0
     for next_screenshot in screenshots:
         number_screenshots=number_screenshots+1
-        path = f"/test-runs/{id}/screenshots/{number_screenshots}.png"
+        path = f"test-runs/{id}/screenshots/{number_screenshots}.png"
         base64_to_s3_image(
             base64_string=str(next_screenshot),
             path=path
         )
-
+    print (result)
     actions = result.model_actions()     # All actions with their parameters
-    # Save actions as JSON to S3
-    actions_json = json.dumps(actions)
-    actions_path = f"/test-runs/{id}/actions.json"
+    model_actions_filtered = result.model_actions_filtered()
+    action_names = result.action_names()
+    history = {
+        "actions": actions,
+        "model_actions_filtered": model_actions_filtered,
+        "action_names": action_names
+    }
+    history_json = json.dumps(history)
+    actions_path = f"/test-runs/{id}/history.json"
     s3.put_object(
         Bucket=S3_BUCKET_NAME,
         Key=actions_path,
-        Body=actions_json,
+        Body=history_json,
         ContentType='application/json',
     )
 
