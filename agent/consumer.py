@@ -65,6 +65,7 @@ def process_message(body):
     print("Task complete.")
 
 def worker():
+    time.sleep(5)
     attempts = 0
     while attempts < 5:
 
