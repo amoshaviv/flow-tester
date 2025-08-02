@@ -7,4 +7,4 @@ cd ~/flow-tester/agent
 git pull origin main
 
 ~/flow-tester/agent/.venv/bin/python ~/flow-tester/agent/agent.py
-# sudo shutdown -h now
+sudo shutdown -h now

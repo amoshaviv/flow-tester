@@ -5,8 +5,6 @@ from dotenv import load_dotenv
 from boto3 import client
 load_dotenv()
 
-import asyncio
-
 llm = ChatOpenAI(model="gpt-4.1-mini")
 
 browser = Browser(
@@ -27,24 +25,25 @@ def base64_to_image(base64_string: str, output_filename: str):
         f.write(img_data)
     return output_filename
 
-async def main():
+async def processTask(task):
     agent = Agent(
-        task="Go to https://news.ycombinator.com/. Return the top 10 posts as a JSON array.",
+        task=task,
         llm=llm,
         browser=browser,
     )
     result = await agent.run()
-    print(result)
-    screenshots = result.screenshots()
-    number_screenshots = 0
-    for next_screenshot in screenshots:
-        number_screenshots=number_screenshots+1
-        path = f"./screenshots/{number_screenshots}.png"
-        img_path = base64_to_image(
-            base64_string=str(next_screenshot),
-            output_filename=path
-        )
-        print(img_path)
+    return result
+    # print(result)
+    # screenshots = result.screenshots()
+    # number_screenshots = 0
+    # for next_screenshot in screenshots:
+    #     number_screenshots=number_screenshots+1
+    #     path = f"./screenshots/{number_screenshots}.png"
+    #     img_path = base64_to_image(
+    #         base64_string=str(next_screenshot),
+    #         output_filename=path
+    #     )
+    #     print(img_path)
 
 def upload_file_to_s3(file_path, bucket_name, s3_key):
     s3 = client('s3')
@@ -53,5 +52,3 @@ def upload_file_to_s3(file_path, bucket_name, s3_key):
         print(f"Uploaded {file_path} to s3://{bucket_name}/{s3_key}")
     except Exception as e:
         print(f"Failed to upload {file_path} to S3: {e}")
-
-asyncio.run(main())

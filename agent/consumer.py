@@ -1,5 +1,10 @@
 from boto3 import client
+import asyncio
 import time
+from agent import processTask
+import json
+
+
 
 # Config
 QUEUE_URL = 'https://sqs.us-west-2.amazonaws.com/746664778706/flow-tester-test-runs-queue'
@@ -11,7 +16,8 @@ sqs = client('sqs', region_name=REGION)
 def process_message(body):
     """Simulate a task, replace this with real logic."""
     print(f"Processing message: {body}")
-    time.sleep(5)  # Simulate work
+    message = json.loads(body)
+    asyncio.run(processTask(message['task']))
     print("Task complete.")
 
 def worker():

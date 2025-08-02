@@ -13,12 +13,10 @@ const client = new SQSClient({
 const queueUrl =
   "https://sqs.us-west-2.amazonaws.com/746664778706/flow-tester-test-runs-queue";
 
-export async function addFlowTestRunToQueue(flowTest) {
+export async function addFlowTestRunToQueue(flowTestRun) {
   const params = {
     QueueUrl: queueUrl,
-    MessageBody: JSON.stringify({
-      flowTest: flowTest,
-    }),
+    MessageBody: JSON.stringify(flowTestRun),
   };
 
   try {

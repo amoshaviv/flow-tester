@@ -35,7 +35,7 @@ Resources:
         Api:
           Type: Api
           Properties:
-            Path: /flows/:flowId/runs
+            Path: /flows/{flowId}/runs
             Method: POST
   
 Outputs:
