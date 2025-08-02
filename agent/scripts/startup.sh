@@ -5,7 +5,6 @@ export DISPLAY=:99
 
 cd ~/flow-tester/agent
 git pull origin main
-source .venv/bin/activate
 
-python3 agent.py
+~/flow-tester/agent/.venv/bin/python ~/flow-tester/agent/agent.py
 # sudo shutdown -h now
