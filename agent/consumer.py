@@ -26,23 +26,36 @@ def base64_to_s3_image(base64_string: str, path: str):
         ContentType='image/png',
     )
 
-def save_result(result):
+def save_result(id, result):
     screenshots = result.screenshots()
     number_screenshots = 0
     for next_screenshot in screenshots:
         number_screenshots=number_screenshots+1
-        path = f"/screenshots/{number_screenshots}.png"
+        path = f"/test-runs/{id}/screenshots/{number_screenshots}.png"
         base64_to_s3_image(
             base64_string=str(next_screenshot),
             path=path
         )
 
+    actions = result.model_actions()     # All actions with their parameters
+    # Save actions as JSON to S3
+    actions_json = json.dumps(actions)
+    actions_path = f"/test-runs/{id}/actions.json"
+    s3.put_object(
+        Bucket=S3_BUCKET_NAME,
+        Key=actions_path,
+        Body=actions_json,
+        ContentType='application/json',
+    )
+
 def process_message(body):
     """Simulate a task, replace this with real logic."""
     print(f"Processing message: {body}")
     message = json.loads(body)
-    result = asyncio.run(processTask(message['task']))
-    save_result(result)
+    task = message['task']
+    id = message['id']
+    result = asyncio.run(processTask(task))
+    save_result(id, result)
     print("Task complete.")
 
 def worker():
