@@ -26,7 +26,7 @@ def base64_to_s3_image(base64_string: str, path: str):
         ContentType='image/png',
     )
 
-def save_result(id, result):
+def save_result_screenshots(id, result):
     screenshots = result.screenshots()
     number_screenshots = 0
     for next_screenshot in screenshots:
@@ -36,23 +36,46 @@ def save_result(id, result):
             base64_string=str(next_screenshot),
             path=path
         )
-    print (result)
-    actions = result.model_actions()     # All actions with their parameters
+
+class SafeJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        try:
+            return super().default(obj)
+        except TypeError:
+            return str(obj) 
+
+def save_result_data(id, result):
+    model_actions = result.model_actions()     # All actions with their parameters
+    actions_results = result.action_results()
+    model_thoughts = result.model_thoughts()
     model_actions_filtered = result.model_actions_filtered()
     action_names = result.action_names()
-    history = {
-        "actions": actions,
+    final_result = result.final_result()
+    extracted_content = result.extracted_content()
+    errors = result.errors()
+
+    run_data = {
+        "model_actions": model_actions,
+        "actions_results": actions_results,
         "model_actions_filtered": model_actions_filtered,
-        "action_names": action_names
+        "model_thoughts": model_thoughts,
+        "action_names": action_names,
+        "final_result": final_result,
+        "extracted_content": extracted_content,
+        "errors": errors
     }
-    history_json = json.dumps(history)
-    actions_path = f"/test-runs/{id}/history.json"
+    run_json = json.dumps(run_data, cls=SafeJSONEncoder, indent=2)
+    actions_path = f"test-runs/{id}/run.json"
     s3.put_object(
         Bucket=S3_BUCKET_NAME,
         Key=actions_path,
-        Body=history_json,
+        Body=run_json,
         ContentType='application/json',
     )
+
+def save_result(id, result):
+    save_result_screenshots(id, result)
+    save_result_data(id, result)
 
 def process_message(body):
     """Simulate a task, replace this with real logic."""
@@ -65,41 +88,35 @@ def process_message(body):
     print("Task complete.")
 
 def worker():
-    time.sleep(5)
-    attempts = 0
-    while attempts < 5:
+    time.sleep(10)
 
-        response = sqs.receive_message(
-            QueueUrl=QUEUE_URL,
-            MaxNumberOfMessages=1
-        )
+    response = sqs.receive_message(
+        QueueUrl=QUEUE_URL,
+        MaxNumberOfMessages=1
+    )
 
-        messages = response.get('Messages', [])
-        if not messages:
-            print("No messages found. Waiting...")
-            attempts += 1
-            time.sleep(1)
-            continue
+    messages = response.get('Messages', [])
+    if not messages:
+        print("No messages found. Waiting...")
 
-        for message in messages:
-            attempts = 0
-            receipt_handle = message['ReceiptHandle']
-            body = message['Body']
+    for message in messages:
+        # attempts = 0
+        receipt_handle = message['ReceiptHandle']
+        body = message['Body']
 
-            try:
-                print("Received message, marking as 'In Progress'")
-                process_message(body)
+        try:
+            print("Received message, marking as 'In Progress'")
+            process_message(body)
 
-                # Delete only after successful processing
-                sqs.delete_message(
-                    QueueUrl=QUEUE_URL,
-                    ReceiptHandle=receipt_handle
-                )
-                print("Message deleted from queue (marked as Done).")
+            # Delete only after successful processing
+            sqs.delete_message(
+                QueueUrl=QUEUE_URL,
+                ReceiptHandle=receipt_handle
+            )
+            print("Message deleted from queue (marked as Done).")
 
-            except Exception as e:
-                print(f"Error processing message: {e}")
-                # Optional: log or send to DLQ manually if needed
+        except Exception as e:
+            print(f"Error processing message: {e}")
 
 if __name__ == "__main__":
     worker()
