@@ -1,0 +1,39 @@
+{
+  "name": "flow-tester",
+  "version": "7.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "post-update": "echo \"codesandbox preview only, need an update\" && pnpm update --latest"
+  },
+  "dependencies": {
+    "@emotion/cache": "latest",
+    "@emotion/react": "latest",
+    "@emotion/styled": "latest",
+    "@mui/icons-material": "latest",
+    "@mui/material": "latest",
+    "@mui/material-nextjs": "latest",
+    "next": "^15.0.0",
+    "next-auth": "^4.24.11",
+    "pg": "^8.16.1",
+    "pg-hstore": "^2.3.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "sequelize": "^6.37.7"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/pg": "^8.15.4",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "latest",
+    "eslint-config-next": "^15.0.0",
+    "typescript": "latest"
+  },
+  "browser": {
+    "crypto": false
+  }
+}
