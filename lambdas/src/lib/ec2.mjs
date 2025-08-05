@@ -1,32 +1,31 @@
 import { EC2Client, DescribeInstancesCommand } from "@aws-sdk/client-ec2";
+const LAUNCH_TEMPLATE_NAME = "flow-tester-browser-agent-launch-template";
 
 export async function getActiveInstancesList() {
   const client = new EC2Client({ region: "us-west-2" });
   const command = new DescribeInstancesCommand({});
   const response = await client.send(command);
-  return response.Reservations.map((reservation) => reservation.Instances);
+
+  // Flatten all instances from all reservations
+  const allInstances = (response.Reservations || [])
+    .flatMap(reservation => reservation.Instances || []);
+
+  // Filter instances launched with the specific launch template
+  const filteredInstances = allInstances.filter(instance => {
+    // instance.LaunchTemplate may be undefined
+    return (
+      instance.LaunchTemplate &&
+      (instance.LaunchTemplate.LaunchTemplateName === LAUNCH_TEMPLATE_NAME)
+    );
+  });
+
+  return filteredInstances;
 }
-// export async function startNewInstance() {
-//   const client = new EC2Client({ region: "us-west-2" });
-//   const command = new RunInstancesCommand({
-//     ImageId: "ami-0c55b159cbfafe1f0",
-//     InstanceType: "t4g.small",
-//     Architecture: "arm64",
-//     MinCount: 1,
-//     MaxCount: 1,
-//     KeyName: "flowtester",
-//     InstanceLifecycle: "spot",
-//     VpcId: "vpc-fe486f87",
-//     SecurityGroupIds: ["sg-09450fc5648cf9722"],
-//   });
-//   const response = await client.send(command);
-//   return response.Instances;
-// }
 
 async function launchInstanceFromTemplate() {
     const params = {
       LaunchTemplate: {
-        LaunchTemplateName: "FlowTesterBrowser", // or use LaunchTemplateId
+        LaunchTemplateName: LAUNCH_TEMPLATE_NAME, // or use LaunchTemplateId
         Version: "$Latest", // or a specific version number like "1"
       },
       MinCount: 1,
