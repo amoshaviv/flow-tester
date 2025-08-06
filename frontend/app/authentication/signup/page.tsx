@@ -258,7 +258,7 @@ export default function SignupPage() {
           </Grid>
           <Grid sx={{ textAlign: "center" }} size={12}>
             <Link
-              href="/authentication/signup"
+              href="/authentication/signin"
               className="text-blue-600 hover:underline"
             >
               Already have an account? Sign in

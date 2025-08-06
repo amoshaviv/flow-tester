@@ -202,7 +202,7 @@ export default function SigninPage() {
           </Grid>
           <Grid sx={{ textAlign: "center" }} size={12}>
             <Link
-              href="/authentication/signin"
+              href="/authentication/signup"
               className="text-blue-600 hover:underline"
             >
               No account? Register.
