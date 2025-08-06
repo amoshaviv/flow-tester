@@ -30,6 +30,8 @@ async function connect() {
     }
   });
 
+  // await db.sync({ force: true });
+
   return db;
 }
 

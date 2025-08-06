@@ -13,6 +13,7 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        console.log(credentials);
         const dbModels = await getDBModels();
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Invalid credentials");

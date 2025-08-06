@@ -1,104 +1,271 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { ChangeEvent, useState } from "react";
+import Grid from "@mui/material/Grid";
+import Link from "next/link";
+import {
+  CircularProgress,
+  Button,
+  FormControl,
+  TextField,
+  Typography,
+} from "@mui/material";
+
+const validateEmail = (email: string) => {
+  return String(email)
+    .toLowerCase()
+    .match(
+      /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+    );
+};
+
+const validatePassword = (password: string) => {
+  return String(password).length > 7;
+};
+
+const validateDisplayName = (password: string) => {
+  return String(password).length > 0;
+};
 
 export default function SignupPage() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [signupError, setSigninError] = useState<string | null>("");
+
+  const [showEmailError, setShowEmailError] = useState<boolean>(false);
+  const [emailError, setEmailError] = useState<boolean>(false);
+  const [email, setEmail] = useState<string>("");
+
+  const [showDisplayNameError, setShowDisplayNameError] =
+    useState<boolean>(false);
+  const [displayNameError, setDisplayNameError] = useState<boolean>(false);
+  const [displayName, setDisplayName] = useState<string>("");
+
+  const [showPasswordError, setShowPasswordError] = useState<boolean>(false);
+  const [passwordError, setPasswordError] = useState<boolean>(false);
+  const [password, setPassword] = useState<string>("");
+
+  const handleEmailChange = (
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
+    setSigninError("");
+    setEmailError(false);
+    setShowEmailError(false);
+
+    const newEmail = event.target.value;
+    setEmail(newEmail);
+    if (!validateEmail(newEmail)) {
+      setEmailError(true);
+    }
+  };
+
+  const handleEmailBlur = (
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
+    setSigninError("");
+    setShowEmailError(false);
+
+    const newEmail = event.target.value;
+    if (!validateEmail(newEmail)) {
+      setShowEmailError(true);
+    }
+  };
+
+  const handlePasswordChange = (
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
+    setSigninError("");
+    setPasswordError(false);
+    setShowPasswordError(false);
+
+    const newPassword = event.target.value;
+    setPassword(newPassword);
+    if (!validatePassword(newPassword)) {
+      setPasswordError(true);
+    }
+  };
+
+  const handlePasswordBlur = (
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
+    setSigninError("");
+    setShowPasswordError(false);
+
+    const newPassword = event.target.value;
+    if (!validatePassword(newPassword)) {
+      setShowPasswordError(true);
+    }
+  };
+
+  const handleDisplayNameChange = (
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
+    setSigninError("");
+    setDisplayNameError(false);
+    setShowDisplayNameError(false);
+
+    const newDisplayName = event.target.value;
+    setDisplayName(newDisplayName);
+    if (!validateDisplayName(newDisplayName)) {
+      setDisplayNameError(true);
+    }
+  };
+
+  const handleDisplayNameBlur = (
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
+    setSigninError("");
+    setShowDisplayNameError(false);
+
+    const newDisplayName = event.target.value;
+    if (!validateDisplayName(newDisplayName)) {
+      setShowDisplayNameError(true);
+    }
+  };
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     try {
       event.preventDefault();
       const formData = new FormData(event.currentTarget);
-      const signInResult = await signIn("credentials", {
+      console.log(formData);
+      setIsSubmitting(true);
+      const response = await signIn("credentials", {
         ...Object.fromEntries(formData),
         redirect: false,
       });
+      setIsSubmitting(false);
 
-      if (signInResult?.error) {
-        setError(signInResult?.error);
+      if (response?.error) {
+        setSigninError("Invalid credentials");
         return;
       }
 
       router.push("/");
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Registration failed");
+      router.refresh();
+    } catch {
+      setSigninError("An error occurred during sign up");
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="displayName" className="sr-only">
-                Full Name
-              </label>
-              <input
-                id="displayName"
+    <form onSubmit={handleSubmit}>
+      <Grid
+        justifyContent="center"
+        alignItems="center"
+        sx={{ mt: 6 }}
+        container
+      >
+        <Grid container size={{ xs: 10, md: 4 }} spacing={3}>
+          <Grid justifyContent="center" alignItems="center" size={12}>
+            <Typography textAlign="center" variant="h5">
+              Sign up to Flowtester
+            </Typography>
+          </Grid>
+          <Grid size={12}>
+            <FormControl fullWidth>
+              <TextField
+                required
                 name="displayName"
-                type="text"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Full Name"
+                id="displayName"
+                label="Full Name"
+                variant="outlined"
+                onBlur={handleDisplayNameBlur}
+                onChange={handleDisplayNameChange}
+                error={showDisplayNameError}
+                disabled={isSubmitting}
+                helperText={
+                  showDisplayNameError ? "Please fill in your full name" : ""
+                }
               />
-            </div>
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email"
+            </FormControl>
+          </Grid>
+          <Grid size={12}>
+            <FormControl fullWidth>
+              <TextField
+                required
                 name="email"
-                type="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                id="email"
+                label="Email"
+                variant="outlined"
+                onBlur={handleEmailBlur}
+                onChange={handleEmailChange}
+                error={showEmailError}
+                disabled={isSubmitting}
+                helperText={
+                  showEmailError ? "Please fill in a valid email" : ""
+                }
               />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
+            </FormControl>
+          </Grid>
+          <Grid size={12}>
+            <FormControl fullWidth>
+              <TextField
+                required
                 name="password"
+                id="password"
                 type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                label="Password"
+                variant="outlined"
+                onBlur={handlePasswordBlur}
+                onChange={handlePasswordChange}
+                error={showPasswordError}
+                disabled={isSubmitting}
+                helperText={
+                  showPasswordError
+                    ? "Please enter a valid password(At least 8 characters)"
+                    : ""
+                }
               />
-            </div>
-          </div>
+            </FormControl>
+          </Grid>
 
-          {error && (
-            <div className="text-red-500 text-sm text-center">{error}</div>
-          )}
-
-          <div>
-            <button
+          <Grid size={12}>
+            <Button
+              disabled={
+                emailError ||
+                passwordError ||
+                displayNameError ||
+                email.trim() === "" ||
+                password.trim() === "" ||
+                displayName.trim() === "" ||
+                isSubmitting
+              }
+              fullWidth
+              variant="contained"
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              Register
-            </button>
-          </div>
-        </form>
-        <div className="text-center">
-          <Link href="/login" className="text-blue-600 hover:underline">
-            Already have an account? Sign in
-          </Link>
-        </div>
-      </div>
-    </div>
+              {isSubmitting ? <CircularProgress size={24} /> : "Sign Up"}
+            </Button>
+          </Grid>
+          {signupError !== "" && (
+            <Grid sx={{ textAlign: "center" }} size={12}>
+              <Typography color="error" variant="caption">
+                {signupError}
+              </Typography>
+            </Grid>
+          )}
+          <Grid sx={{ textAlign: "center" }} size={12}>
+            <Typography variant="caption">
+              By clicking Sign Up, you agree to our{" "}
+              <a href="/terms-of-service.html">Terms</a>. Learn how we collect,
+              use and share your data in our{" "}
+              <a href="/privacy-policy.html">Privacy Policy</a> and how we use
+              cookies and similar technology in our{" "}
+              <a href="/cookies-policy.html">Cookies Policy</a>.
+            </Typography>
+          </Grid>
+          <Grid sx={{ textAlign: "center" }} size={12}>
+            <Link
+              href="/authentication/signup"
+              className="text-blue-600 hover:underline"
+            >
+              Already have an account? Sign in
+            </Link>
+          </Grid>
+        </Grid>
+      </Grid>
+    </form>
   );
 }
