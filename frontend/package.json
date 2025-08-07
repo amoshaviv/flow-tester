@@ -16,6 +16,7 @@
     "@mui/icons-material": "latest",
     "@mui/material": "latest",
     "@mui/material-nextjs": "latest",
+    "change-case": "^5.4.4",
     "next": "^15.0.0",
     "next-auth": "^4.24.11",
     "pg": "^8.16.1",

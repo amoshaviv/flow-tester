@@ -1,12 +1,14 @@
 import { Sequelize, DataTypes, Model, ModelStatic } from "sequelize";
 import { randomBytes, pbkdf2Sync, createHash } from "crypto";
+import { IModels } from ".";
+import { IOrganizationInstance } from "./organization";
 
 const getGravatarURL = (email: string, size = 200) => {
   const trimmedEmail = email.trim().toLowerCase();
   const hash = createHash("sha256").update(trimmedEmail).digest("hex");
   return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon`;
 };
-interface IUserInstance extends Model {
+export interface IUserInstance extends Model {
   id: number;
   username: string;
   email: string;
@@ -20,9 +22,11 @@ interface IUserInstance extends Model {
   authenticate(password: string): boolean;
   updatePassword(password: string): IUserInstance | Promise<IUserInstance>;
   hashPassword(password: string): string;
+  getOrganizations(): Promise<IOrganizationInstance[]>;
 }
 
 export interface IUserModel extends ModelStatic<IUserInstance> {
+  associate(models: IModels): void;
   findByEmail(email: string): Promise<IUserInstance | null>;
   findUniqueUsername(possibleUsername: string): Promise<string>;
 }
@@ -74,6 +78,16 @@ export default function defineUserModel(sequelize: Sequelize): IUserModel {
       allowNull: false,
     },
   }) as IUserModel;
+
+  User.associate = function associate(models) {
+    const { Organization, UsersOrganizations } = models;
+
+    this.belongsToMany(Organization, {
+      as: "organizations",
+      through: UsersOrganizations,
+      onDelete: "CASCADE",
+    });
+  };
 
   User.beforeCreate((user: any) => {
     if (user.password) {

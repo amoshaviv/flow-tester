@@ -24,7 +24,7 @@ export default function defineProjectModel(
         notEmpty: true,
       },
     },
-    displayName: {
+    name: {
       type: DataTypes.STRING,
       allowNull: false,
       validate: {

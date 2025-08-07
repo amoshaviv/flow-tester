@@ -135,9 +135,9 @@ export default function SignupPage() {
         ...Object.fromEntries(formData),
         redirect: false,
       });
-      setIsSubmitting(false);
 
       if (response?.error) {
+        setIsSubmitting(false);
         setSigninError("Invalid credentials");
         return;
       }
