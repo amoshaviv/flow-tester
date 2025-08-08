@@ -1,4 +1,4 @@
-import { Sequelize, DataTypes, Model, ModelStatic } from "sequelize";
+import { Sequelize, DataTypes, Model, ModelStatic, BelongsToManyGetAssociationsMixinOptions } from "sequelize";
 import { randomBytes, pbkdf2Sync, createHash } from "crypto";
 import { IModels } from ".";
 import { IOrganizationInstance } from "./organization";
@@ -22,7 +22,7 @@ export interface IUserInstance extends Model {
   authenticate(password: string): boolean;
   updatePassword(password: string): IUserInstance | Promise<IUserInstance>;
   hashPassword(password: string): string;
-  getOrganizations(): Promise<IOrganizationInstance[]>;
+  getOrganizations(options?: BelongsToManyGetAssociationsMixinOptions): Promise<IOrganizationInstance[]>;
 }
 
 export interface IUserModel extends ModelStatic<IUserInstance> {

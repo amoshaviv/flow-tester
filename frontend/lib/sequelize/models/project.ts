@@ -10,7 +10,7 @@ import { IUserInstance } from "./user";
 import { IOrganizationInstance } from "./organization";
 import { kebabCase } from "change-case";
 
-interface IProjectInstance extends Model {
+export interface IProjectInstance extends Model {
   id: number;
   slug: string;
   displayName: string;

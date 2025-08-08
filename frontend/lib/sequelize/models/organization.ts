@@ -11,6 +11,7 @@ import {
 import { kebabCase } from "change-case";
 import { IModels } from ".";
 import { IUserInstance } from "./user";
+import { IProjectInstance } from "./project";
 import { UserRole } from "./users-organizations";
 export interface IOrganizationInstance extends Model {
   id: number;
@@ -18,6 +19,7 @@ export interface IOrganizationInstance extends Model {
   name: string;
   domain: string;
   profileImageURL: string;
+  projects: IProjectInstance[],
   setCreatedBy(
     user: IUserInstance,
     options: BelongsToSetAssociationMixinOptions

@@ -1,5 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 export { default } from "next-auth/middleware";
 
@@ -13,8 +14,12 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request });
 
   if (token) {
-    if (AUTH_ROUTES.includes(url) || url === '/') {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+    if (AUTH_ROUTES.includes(url) || url === "/") {
+      const cookieStore = await cookies();
+      const lastOrganization = cookieStore.get("lastOrganization");
+      const lastProject = cookieStore.get("lastProject");
+
+      return NextResponse.redirect(new URL(`/${lastOrganization?.value}/${lastProject?.value}`, request.url));
     }
   } else {
     if (url === DASHBOARD_ROUTE) {

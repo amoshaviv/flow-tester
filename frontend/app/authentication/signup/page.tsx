@@ -129,7 +129,7 @@ export default function SignupPage() {
     try {
       event.preventDefault();
       const formData = new FormData(event.currentTarget);
-      console.log(formData);
+
       setIsSubmitting(true);
       const response = await signIn("credentials", {
         ...Object.fromEntries(formData),

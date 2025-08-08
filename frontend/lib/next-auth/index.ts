@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { type NextAuthOptions, getServerSession } from "next-auth";
 import { getDBModels } from "@/lib/sequelize";
 import { capitalCase } from "change-case";
+import { cookies } from "next/headers";
 
 type OrganizationInfo = { domain: string; name: string };
 function getOrganizationInfoFromEmail(
@@ -64,7 +65,7 @@ export const authOptions = {
         displayName: { label: "Name", type: "displayName" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const dbModels = await getDBModels();
         const { User, Organization, Project } = dbModels;
         if (!credentials?.email || !credentials?.password) {
@@ -72,6 +73,7 @@ export const authOptions = {
         }
 
         const user = await User.findByEmail(credentials.email);
+        const cookieStore = await cookies();
 
         if (!user) {
           if (!credentials?.displayName) throw new Error("Invalid credentials");
@@ -88,7 +90,7 @@ export const authOptions = {
               credentials.email,
               credentials.displayName
             );
-            console.log(organizationInformation);
+
             const defaultOrganization = await Organization.createWithUser(
               organizationInformation.name,
               organizationInformation.domain,
@@ -99,23 +101,37 @@ export const authOptions = {
               newUser,
               defaultOrganization
             );
-          } catch (err) {
-            console.log(err);
-          }
 
-          return {
-            email: newUser.email,
-            displayName: newUser.displayName,
-            profileImageURL: newUser.profileImageURL,
-          };
+            // Save redirect URL as a cookie
+            cookieStore.set("lastOrganization", defaultOrganization.slug);
+            cookieStore.set("lastProject", defaultProject.slug);
+
+            return {
+              email: newUser.email,
+              displayName: newUser.displayName,
+              profileImageURL: newUser.profileImageURL,
+            };
+          } catch (err) {
+            throw new Error("Invalid credentials");
+          }
         }
 
         if (!user.authenticate(credentials.password)) {
           throw new Error("Invalid credentials");
         }
 
+        const organizations = await user.getOrganizations({
+          include: [
+            {
+              association: "projects",
+              attributes: ["name", "slug"],
+            },
+          ],
+        });
+        cookieStore.set("lastOrganization", organizations[0].slug);
+        cookieStore.set("lastProject", organizations[0].projects[0].slug);
+
         return {
-          id: user.id.toString(),
           email: user.email,
           displayName: user.displayName,
           profileImageURL: user.profileImageURL,
@@ -127,7 +143,7 @@ export const authOptions = {
     signIn: "/authentication/signin",
   },
   callbacks: {
-    async jwt({ token, user, session,  }) {
+    async jwt({ token, user, session }) {
       if (user) {
         token.email = user.email;
         token.displayName = user.displayName;
