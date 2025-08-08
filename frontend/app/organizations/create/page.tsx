@@ -103,17 +103,19 @@ export default function CreateOrganizationPage() {
         body: JSON.stringify(Object.fromEntries(formData)),
       })
         .then((res) => {
-          console.log(res);
           setIsSubmitting(false);
-          setCreateError("Invalid credentials");
+          if (res.status !== 200) {
+            res.json().then((data) => {
+              setCreateError(
+                data?.message || "An error occurred, please try again"
+              );
+            });
+          }
         })
         .catch((e) => {
           setIsSubmitting(false);
-          setCreateError("Invalid credentials");
+          setCreateError("An error occurred, please try again");
         });
-
-    //   router.push("/");
-    //   router.refresh();
     } catch {
       setCreateError("An error occurred during login");
     }

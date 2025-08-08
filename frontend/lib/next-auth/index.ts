@@ -2,6 +2,58 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { type NextAuthOptions, getServerSession } from "next-auth";
 import { getDBModels } from "@/lib/sequelize";
+import { capitalCase } from "change-case";
+
+type OrganizationInfo = { domain: string; name: string };
+function getOrganizationInfoFromEmail(
+  email: string,
+  fullName: string
+): OrganizationInfo {
+  const commonProviders = [
+    "gmail",
+    "yahoo",
+    "hotmail",
+    "outlook",
+    "icloud",
+    "aol",
+    "protonmail",
+    "msn",
+    "live",
+    "ymail",
+    "mail",
+    "zoho",
+    "gmx",
+    "me",
+    "comcast",
+    "verizon",
+    "att",
+    "sbcglobal",
+    "cox",
+    "charter",
+    "rocketmail",
+    "mail",
+    "yandex",
+    "qq",
+    "naver",
+    "163",
+    "126",
+    "yeah",
+    "googlemail",
+  ];
+  const domainPart = email.split("@")[1];
+  const nakedDomain = domainPart.split(".")[0];
+  if (commonProviders.includes(nakedDomain)) {
+    return {
+      name: fullName,
+      domain: email.replace("@", "."),
+    };
+  } else {
+    return {
+      name: capitalCase(nakedDomain),
+      domain: domainPart,
+    };
+  }
+}
 
 export const authOptions = {
   providers: [
@@ -14,15 +66,16 @@ export const authOptions = {
       },
       async authorize(credentials) {
         const dbModels = await getDBModels();
+        const { User, Organization, Project } = dbModels;
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Invalid credentials");
         }
 
-        const user = await dbModels.User.findByEmail(credentials.email);
+        const user = await User.findByEmail(credentials.email);
 
         if (!user) {
           if (!credentials?.displayName) throw new Error("Invalid credentials");
-          const newUser = await dbModels.User.create({
+          const newUser = await User.create({
             email: credentials.email,
             password: credentials.password,
             displayName: credentials.displayName,
@@ -30,8 +83,27 @@ export const authOptions = {
             providerId: credentials.email,
           });
 
+          try {
+            const organizationInformation = getOrganizationInfoFromEmail(
+              credentials.email,
+              credentials.displayName
+            );
+            console.log(organizationInformation);
+            const defaultOrganization = await Organization.createWithUser(
+              organizationInformation.name,
+              organizationInformation.domain,
+              newUser
+            );
+            const defaultProject = await Project.createWithOrganization(
+              `Default Project`,
+              newUser,
+              defaultOrganization
+            );
+          } catch (err) {
+            console.log(err);
+          }
+
           return {
-            id: newUser.id.toString(),
             email: newUser.email,
             displayName: newUser.displayName,
             profileImageURL: newUser.profileImageURL,
@@ -55,7 +127,7 @@ export const authOptions = {
     signIn: "/authentication/signin",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, session,  }) {
       if (user) {
         token.email = user.email;
         token.displayName = user.displayName;
@@ -63,7 +135,7 @@ export const authOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token, trigger }) {
       return {
         ...session,
         user: {

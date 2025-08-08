@@ -1,6 +1,7 @@
 import { Sequelize, DataTypes, Model, ModelStatic } from "sequelize";
 
 export enum UserRole {
+  Owner = "owner",
   Admin = "admin",
   User = "user",
   Tester = "tester",

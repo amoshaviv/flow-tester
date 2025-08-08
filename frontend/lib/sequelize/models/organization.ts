@@ -4,10 +4,14 @@ import {
   Model,
   ModelStatic,
   BelongsToSetAssociationMixinOptions,
+  BelongsToManyAddAssociationMixinOptions,
+  col,
+  literal,
 } from "sequelize";
 import { kebabCase } from "change-case";
 import { IModels } from ".";
-import user, { IUserInstance } from "./user";
+import { IUserInstance } from "./user";
+import { UserRole } from "./users-organizations";
 export interface IOrganizationInstance extends Model {
   id: number;
   slug: string;
@@ -16,8 +20,12 @@ export interface IOrganizationInstance extends Model {
   profileImageURL: string;
   setCreatedBy(
     user: IUserInstance,
-    option: BelongsToSetAssociationMixinOptions
+    options: BelongsToSetAssociationMixinOptions
   ): void;
+  addUser(
+    user: IUserInstance,
+    options: BelongsToManyAddAssociationMixinOptions
+  ): Promise<void>;
 }
 
 export interface IOrganizationModel extends ModelStatic<IOrganizationInstance> {
@@ -80,10 +88,10 @@ export default function defineOrganizationModel(
       },
     });
 
-    this.belongsTo(User, {
+    this.belongsTo(models.User, {
       as: "createdBy",
       foreignKey: {
-        name: "created_by_user_id",
+        field: "created_by_user_id",
         allowNull: false,
       },
     });
@@ -108,7 +116,7 @@ export default function defineOrganizationModel(
       suffix += 1;
       organization = await this.findOne({
         where: {
-          username: possibleSlug + suffix,
+          slug: possibleSlug + suffix,
         },
       });
     }
@@ -122,19 +130,42 @@ export default function defineOrganizationModel(
     user: IUserInstance
   ) {
     const possibleSlug = kebabCase(name);
-    const slug = this.findUniqueSlug(possibleSlug);
+    const slug = await this.findUniqueSlug(possibleSlug);
+
     const newOrganization = this.build({ name, domain, slug });
-    newOrganization.setCreatedBy(user, {
-      save: false,
+    newOrganization.setCreatedBy(user, { save: false });
+    await newOrganization.save();
+
+    await newOrganization.addUser(user, { through: { role: UserRole.Owner } });
+
+    await newOrganization.reload({
+      include: [
+        {
+          association: "users",
+          attributes: [
+            "email",
+            "displayName",
+            "profileImageURL",
+            [literal('"users->UsersOrganizations"."role"'), 'role'],
+          ],
+          through: { attributes: [] },
+        },
+      ],
     });
 
-    return newOrganization.save();
+    return newOrganization;
   };
 
   Organization.prototype.toJSON = function toJSON() {
     const output = Object.assign({}, this.get());
 
-    const excludedFields = ["id", "createdAt", "updatedAt", "deletedAt"];
+    const excludedFields = [
+      "id",
+      "createdAt",
+      "updatedAt",
+      "deletedAt",
+      "createdById",
+    ];
 
     excludedFields.forEach((excludedField) => delete output[excludedField]);
     return output;

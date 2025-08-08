@@ -21,7 +21,6 @@ export default async function Home() {
   if(!user) return redirect('/authentication/signin', RedirectType.push);
 
   const organizations = await user.getOrganizations();
-  console.log(organizations);
   
   if (!organizations || organizations.length === 0) return redirect('/organizations/create', RedirectType.push);
   
