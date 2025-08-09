@@ -42,7 +42,7 @@ export const getDBConnection = async () => {
 };
 
 export const getDBModels = async () => {
-  if (db) return models;
+  if (db && models) return models;
   await connect();
   return models;
 };

@@ -6,7 +6,13 @@ import theme from "@/theme";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import Providers from "@/app/components/authentication/providers";
 import { getSession } from "@/lib/next-auth";
-import NavBar from "@/app/components/layout/NavBar";
+import { Metadata } from 'next';
+ 
+export const metadata: Metadata = {
+  title: 'Flow Tester - The AI Agents Are Coming!',
+  description: 'Flow tester is a tool ',
+  metadataBase: new URL('https://flowtester.ai'),
+};
 
 export default async function RootLayout(props: { children: React.ReactNode }) {
   const session = await getSession();
@@ -20,7 +26,6 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
           <ThemeProvider theme={theme}>
             <Providers session={session}>
               <CssBaseline />
-              <NavBar />
               {props.children}
             </Providers>
           </ThemeProvider>

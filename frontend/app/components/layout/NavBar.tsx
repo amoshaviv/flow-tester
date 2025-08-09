@@ -10,21 +10,38 @@ import ListItemText from "@mui/material/ListItemText";
 import Toolbar from "@mui/material/Toolbar";
 import PersonIcon from "@mui/icons-material/Person";
 import Link from "next/link";
-import { signOut } from "next-auth/react"
+import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
 
 import BookmarksIcon from "@mui/icons-material/Bookmarks";
 import { Avatar, Menu, MenuItem, Typography } from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
+import { IOrganizationInstance } from "@/lib/sequelize/models/organization";
 
-export default function NavBar() {
+export default function NavBar({
+  organization,
+}: {
+  organization?: IOrganizationInstance;
+}) {
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated";
+
   const user = isAuthenticated ? session.user : null;
+
+  const [anchorElOrganization, setAnchorElOrganization] =
+    React.useState<null | HTMLElement>(null);
 
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(
     null
   );
+
+  const handleOpenOrganizationMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorElOrganization(event.currentTarget);
+  };
+
+  const handleCloseOrganizationMenu = () => {
+    setAnchorElOrganization(null);
+  };
 
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElUser(event.currentTarget);
@@ -41,20 +58,77 @@ export default function NavBar() {
 
   return (
     <Box sx={{ display: "flex" }}>
-      <AppBar component="nav">
+      <AppBar
+        position="fixed"
+        component="nav"
+        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+      >
         <Toolbar>
-          <Box sx={{ flexGrow: 0 }}>
-            <IconButton
-              sx={{
-                ml: 0,
-                visibility: "hidden",
-              }}
-              color="inherit"
-              edge="start"
-            >
-              <BookmarksIcon />
-            </IconButton>
-          </Box>
+          {!organization && (
+            <Box sx={{ flexGrow: 0 }}>
+              <IconButton
+                sx={{
+                  ml: 0,
+                  visibility: "hidden",
+                }}
+                color="inherit"
+                edge="start"
+              >
+                <BookmarksIcon />
+              </IconButton>
+            </Box>
+          )}
+          {organization && (
+            <Box sx={{ flexGrow: 0 }}>
+              <Tooltip title={organization?.name}>
+                <IconButton onClick={handleOpenOrganizationMenu} sx={{ p: 0 }}>
+                  <Avatar
+                    alt={organization?.name}
+                    variant="rounded"
+                    src={organization?.profileImageURL}
+                  >
+                    {!organization?.profileImageURL &&
+                      organization?.name[0].toUpperCase()}
+                  </Avatar>
+                </IconButton>
+              </Tooltip>
+              <Menu
+                sx={{ mt: "45px" }}
+                id="organization-menu-appbar"
+                anchorEl={anchorElOrganization}
+                anchorOrigin={{
+                  vertical: "top",
+                  horizontal: "right",
+                }}
+                keepMounted
+                transformOrigin={{
+                  vertical: "top",
+                  horizontal: "right",
+                }}
+                open={Boolean(anchorElOrganization)}
+                onClose={handleCloseOrganizationMenu}
+              >
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={handleCloseOrganizationMenu}
+                    component={Link}
+                    href={`${organization.slug}/settings`}
+                  >
+                    <ListItemText primary="Edit Organization Settings" />
+                  </ListItemButton>
+                </ListItem>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={handleCloseOrganizationMenu}
+                    component={Link}
+                    href={"/organizations"}
+                  >
+                    <ListItemText primary="Change Organization" />
+                  </ListItemButton>
+                </ListItem>
+              </Menu>
+            </Box>
+          )}
           <Box sx={{ flexGrow: 1, textAlign: "center" }}>
             <Link href="/">
               <img

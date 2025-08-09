@@ -19,7 +19,7 @@ export interface IOrganizationInstance extends Model {
   name: string;
   domain: string;
   profileImageURL: string;
-  projects: IProjectInstance[],
+  projects: IProjectInstance[];
   setCreatedBy(
     user: IUserInstance,
     options: BelongsToSetAssociationMixinOptions
@@ -33,6 +33,10 @@ export interface IOrganizationInstance extends Model {
 export interface IOrganizationModel extends ModelStatic<IOrganizationInstance> {
   associate(models: IModels): void;
   findUniqueSlug(slug: string): Promise<string>;
+  findBySlugAndUserEmail(
+    slug: string,
+    email: string
+  ): Promise<IOrganizationInstance | null>;
   createWithUser(
     name: string,
     domain: string,
@@ -99,6 +103,22 @@ export default function defineOrganizationModel(
     });
   };
 
+  Organization.findBySlugAndUserEmail = async function findBySlug(
+    slug: string,
+    email: string
+  ) {
+    return this.findOne({
+      where: {
+        slug: slug,
+      },
+      include: {
+        association: "users",
+        where: { email: email },
+        attributes: [], 
+      },
+    });
+  };
+
   Organization.findUniqueSlug = async function findUniqueSlug(
     possibleSlug: string
   ) {
@@ -148,7 +168,7 @@ export default function defineOrganizationModel(
             "email",
             "displayName",
             "profileImageURL",
-            [literal('"users->UsersOrganizations"."role"'), 'role'],
+            [literal('"users->UsersOrganizations"."role"'), "role"],
           ],
           through: { attributes: [] },
         },

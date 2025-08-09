@@ -13,7 +13,7 @@ import { kebabCase } from "change-case";
 export interface IProjectInstance extends Model {
   id: number;
   slug: string;
-  displayName: string;
+  name: string;
   profileImageURL: string;
   setCreatedBy(
     user: IUserInstance,
@@ -23,6 +23,23 @@ export interface IProjectInstance extends Model {
     user: IOrganizationInstance,
     options: BelongsToSetAssociationMixinOptions
   ): void;
+}
+
+export interface IProjectModel extends ModelStatic<IProjectInstance> {
+  associate(models: IModels): void;
+  findUniqueSlug(
+    slug: string,
+    organization: IOrganizationInstance
+  ): Promise<string>;
+  createWithOrganization(
+    name: string,
+    user: IUserInstance,
+    organization: IOrganizationInstance
+  ): Promise<IProjectInstance>;
+  findBySlugAndOrganizationSlug(
+    projectSlug: string,
+    organizationSlug: string
+  ): Promise<IProjectInstance | null>;
 }
 
 export interface IProjectModel extends ModelStatic<IProjectInstance> {
@@ -81,6 +98,27 @@ export default function defineProjectModel(
       },
     });
   };
+
+  Project.findBySlugAndOrganizationSlug =
+    async function findBySlugAndOrganizationSlug(
+      projectSlug: string,
+      organizationSlug: string
+    ) {
+      return await this.findOne({
+        where: {
+          slug: projectSlug,
+        },
+        include: [
+          {
+            association: "organization",
+            where: {
+              slug: organizationSlug,
+            },
+            attributes: [], 
+          },
+        ],
+      });
+    };
 
   Project.findUniqueSlug = async function findUniqueSlug(
     possibleSlug: string,
