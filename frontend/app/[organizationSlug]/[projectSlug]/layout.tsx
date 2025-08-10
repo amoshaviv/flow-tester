@@ -4,23 +4,14 @@ import { getDBModels } from "@/lib/sequelize";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import Toolbar from "@mui/material/Toolbar";
-import List from "@mui/material/List";
-import Menu from "@mui/material/Menu";
 import Divider from "@mui/material/Divider";
-import ListItem from "@mui/material/ListItem";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
 import { redirect } from "next/navigation";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import SettingsIcon from "@mui/icons-material/Settings";
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import Link from "next/link";
 import ProjectMenu from "./ProjectMenu";
+import ProjectNavigation from "./ProjectNavigation";
+
 const drawerWidth = 200;
 
-export default async function OrganizationLayout(props: {
+export default async function ProjectLayout(props: {
   children: React.ReactNode;
   params: Promise<{ projectSlug: string; organizationSlug: string }>;
 }) {
@@ -35,7 +26,7 @@ export default async function OrganizationLayout(props: {
     projectSlug,
     organizationSlug
   );
-  
+
   if (!project) redirect("/dashboard");
 
   return (
@@ -53,34 +44,9 @@ export default async function OrganizationLayout(props: {
       >
         <Toolbar />
         <Box sx={{ overflow: "auto" }}>
-          <ProjectMenu project={project.toJSON()} />
+          <ProjectMenu project={project.toJSON()} organizationSlug={organizationSlug} />
           <Divider />
-          <List>
-            <ListItem key={"Tests"} disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  <AccountTreeIcon />
-                </ListItemIcon>
-                <ListItemText primary={"Tests"} />
-              </ListItemButton>
-            </ListItem>
-            <ListItem key={"Runs"} disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  <PlayArrowIcon />
-                </ListItemIcon>
-                <ListItemText primary={"Runs"} />
-              </ListItemButton>
-            </ListItem>
-            <ListItem key={"Settings"} disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  <SettingsIcon />
-                </ListItemIcon>
-                <ListItemText primary={"Settings"} />
-              </ListItemButton>
-            </ListItem>
-          </List>
+          <ProjectNavigation organizationSlug={organizationSlug} projectSlug={projectSlug} />
         </Box>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1 }}>

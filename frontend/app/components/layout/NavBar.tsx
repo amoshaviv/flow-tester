@@ -112,7 +112,7 @@ export default function NavBar({
                   <ListItemButton
                     onClick={handleCloseOrganizationMenu}
                     component={Link}
-                    href={`${organization.slug}/settings`}
+                    href={`/${organization.slug}/settings`}
                   >
                     <ListItemText primary="Edit Organization Settings" />
                   </ListItemButton>

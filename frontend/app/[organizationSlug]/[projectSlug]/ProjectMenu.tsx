@@ -11,8 +11,8 @@ import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import Link from "next/link";
 import { IProjectInstance } from "@/lib/sequelize/models/project";
 
-export default function ProjectMenu(props: { project: IProjectInstance }) {
-  const { project } = props;
+export default function ProjectMenu(props: { project: IProjectInstance, organizationSlug: string }) {
+  const { project, organizationSlug } = props;
   const [anchorElementProjectMenu, setAnchorElementProjectMenu] =
     React.useState<null | HTMLElement>(null);
 
@@ -39,6 +39,7 @@ export default function ProjectMenu(props: { project: IProjectInstance }) {
       <Menu
         id="project-menu"
         anchorEl={anchorElementProjectMenu}
+        sx={{ ml: 1 }}
         anchorOrigin={{
           vertical: "top",
           horizontal: "right",
@@ -55,7 +56,7 @@ export default function ProjectMenu(props: { project: IProjectInstance }) {
           <ListItemButton
             onClick={handleCloseProjectMenu}
             component={Link}
-            href={`${project.slug}/settings`}
+            href={`/${organizationSlug}/${project.slug}/settings`}
           >
             <ListItemText primary="Edit Project Settings" />
           </ListItemButton>
