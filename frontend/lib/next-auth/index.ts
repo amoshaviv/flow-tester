@@ -96,6 +96,7 @@ export const authOptions = {
               organizationInformation.domain,
               newUser
             );
+            console.log(defaultOrganization.isNewRecord);
             const defaultProject = await Project.createWithOrganization(
               `Default Project`,
               newUser,
@@ -112,6 +113,7 @@ export const authOptions = {
               profileImageURL: newUser.profileImageURL,
             };
           } catch (err) {
+            console.log(err);
             throw new Error("Invalid credentials");
           }
         }

@@ -28,15 +28,5 @@ export default function defineUsersOrganizationsModel(
     },
   }) as IUsersOrganizationsModel;
 
-
-  UsersOrganizations.prototype.toJSON = function toJSON() {
-    const output = Object.assign({}, this.get());
-
-    const excludedFields = ["id", "deletedAt"];
-
-    excludedFields.forEach((excludedField) => delete output[excludedField]);
-    return output;
-  };
-
   return UsersOrganizations;
 }

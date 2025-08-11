@@ -178,20 +178,5 @@ export default function defineOrganizationModel(
     return newOrganization;
   };
 
-  Organization.prototype.toJSON = function toJSON() {
-    const output = Object.assign({}, this.get());
-
-    const excludedFields = [
-      "id",
-      "createdAt",
-      "updatedAt",
-      "deletedAt",
-      "createdById",
-    ];
-
-    excludedFields.forEach((excludedField) => delete output[excludedField]);
-    return output;
-  };
-
   return Organization;
 }

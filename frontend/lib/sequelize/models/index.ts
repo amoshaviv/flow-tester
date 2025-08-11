@@ -1,10 +1,13 @@
 import { Sequelize } from "sequelize";
 import defineUserModel, { IUserModel } from "./user";
 import defineOrganizationModel, { IOrganizationModel } from "./organization";
-import defineUsersOrganizationsModel, { IUsersOrganizationsModel } from "./users-organizations";
+import defineUsersOrganizationsModel, {
+  IUsersOrganizationsModel,
+} from "./users-organizations";
 import defineProjectModel, { IProjectModel } from "./project";
 import defineTestModel, { ITestModel } from "./test";
-import defineRunModel, { IRunModel } from "./run";
+import defineTestVersionModel, { ITestVersionModel } from "./test-version";
+import defineTestRunVersionModel, { ITestRunModel } from "./test-run";
 import defineResetPasswordTokenModel from "./reset-password-token";
 
 export interface IModels {
@@ -13,7 +16,8 @@ export interface IModels {
   UsersOrganizations: IUsersOrganizationsModel;
   Project: IProjectModel;
   Test: ITestModel;
-  Run: IRunModel;
+  TestVersion: ITestVersionModel;
+  TestRun: ITestRunModel;
 }
 
 export default function defineModels(sequelizeConnection: Sequelize): IModels {
@@ -21,8 +25,17 @@ export default function defineModels(sequelizeConnection: Sequelize): IModels {
   const Organization = defineOrganizationModel(sequelizeConnection);
   const Project = defineProjectModel(sequelizeConnection);
   const Test = defineTestModel(sequelizeConnection);
-  const Run = defineRunModel(sequelizeConnection);
+  const TestVersion = defineTestVersionModel(sequelizeConnection);
+  const TestRun = defineTestRunVersionModel(sequelizeConnection);
   const UsersOrganizations = defineUsersOrganizationsModel(sequelizeConnection);
 
-  return { User, Organization, UsersOrganizations, Project, Test, Run };
+  return {
+    User,
+    Organization,
+    UsersOrganizations,
+    Project,
+    Test,
+    TestVersion,
+    TestRun,
+  };
 }

@@ -7,8 +7,10 @@ import Link from "@mui/material/Link";
 import NextLink from "next/link";
 import { getSession } from "@/lib/next-auth";
 
+
 export default async function Home() {
   const session = await getSession();
+  
   return (
     <Container maxWidth="lg">
       <Box

@@ -133,24 +133,5 @@ export default function defineUserModel(sequelize: Sequelize): IUserModel {
     return password;
   };
 
-  User.prototype.toJSON = function toJSON() {
-    const output = Object.assign({}, this.get());
-
-    const excludedFields = [
-      "id",
-      "password",
-      "secret",
-      "provider",
-      "providerId",
-      "providerData",
-      "createdAt",
-      "updatedAt",
-      "deletedAt",
-    ];
-
-    excludedFields.forEach((excludedField) => delete output[excludedField]);
-    return output;
-  };
-
   return User;
 }

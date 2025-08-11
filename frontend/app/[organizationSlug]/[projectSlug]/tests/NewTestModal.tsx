@@ -134,9 +134,8 @@ export default function AddNewTestModal() {
   return (
     <React.Fragment>
       <Button
-        sx={{ borderRadius: "25px" }}
+        sx={{ borderRadius: "25px", width: "240px" }}
         size="large"
-        fullWidth
         variant="contained"
         onClick={handleOpenModal}
       >
@@ -203,7 +202,7 @@ export default function AddNewTestModal() {
                         id="title"
                         name="title"
                         label="Title"
-                        placeholder="Testing Search Results & "
+                        placeholder="Search Results & Sorting"
                         variant="outlined"
                         onBlur={handleTitleBlur}
                         onChange={handleTitleChange}
@@ -222,7 +221,7 @@ export default function AddNewTestModal() {
                         id="description"
                         name="description"
                         label="Description"
-                        placeholder="Go to acme.com and search for straight boomerangs."
+                        placeholder="Go to acme.com and search for straight boomerangs and sort by bananas score."
                         minRows={6}
                         multiline
                         variant="outlined"

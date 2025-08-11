@@ -80,9 +80,9 @@ export default function defineProjectModel(
   }) as IProjectModel;
 
   Project.associate = function associate(models) {
-    const { User, Organization } = models;
+    const { User, Organization, Test } = models;
 
-    this.belongsTo(models.User, {
+    this.belongsTo(User, {
       as: "createdBy",
       foreignKey: {
         field: "created_by_user_id",
@@ -94,6 +94,14 @@ export default function defineProjectModel(
       as: "organization",
       foreignKey: {
         name: "organization_id",
+        allowNull: false,
+      },
+    });
+
+    this.hasMany(Test, {
+      as: "tests",
+      foreignKey: {
+        name: "project_id",
         allowNull: false,
       },
     });
@@ -161,18 +169,7 @@ export default function defineProjectModel(
     const newProject = this.build({ name, slug });
     newProject.setCreatedBy(user, { save: false });
     newProject.setOrganization(organization, { save: false });
-    await newProject.save();
-
-    return newProject;
-  };
-
-  Project.prototype.toJSON = function toJSON() {
-    const output = Object.assign({}, this.get());
-
-    const excludedFields = ["id", "createdAt", "updatedAt", "deletedAt"];
-
-    excludedFields.forEach((excludedField) => delete output[excludedField]);
-    return output;
+    return newProject.save();
   };
 
   return Project;

@@ -23,7 +23,8 @@
     "pg-hstore": "^2.3.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.7",
+    "ulid": "^3.0.1"
   },
   "devDependencies": {
     "@types/node": "latest",
