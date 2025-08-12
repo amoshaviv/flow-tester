@@ -20,14 +20,25 @@ import Tooltip from "@mui/material/Tooltip";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
+import Button from "@mui/material/Button";
 import { visuallyHidden } from "@mui/utils";
 import AddNewTestModal from "./NewTestModal";
+import EditTestModal from "./EditTestModal";
 
 interface Data {
   title: string;
   description: string;
   versions: number;
+  runs: number;
+  Run: number;
+  actions: string;
 }
 
 function createData(
@@ -106,6 +117,12 @@ const headCells: readonly HeadCell[] = [
     disablePadding: false,
     label: "Run",
   },
+  {
+    id: "actions",
+    numeric: false,
+    disablePadding: false,
+    label: "Actions",
+  },
 ];
 
 interface EnhancedTableProps {
@@ -151,7 +168,6 @@ function EnhancedTableHead(props: EnhancedTableProps) {
         {headCells.map((headCell) => (
           <TableCell
             key={headCell.id}
-            align={headCell.numeric ? "right" : "left"}
             padding={headCell.disablePadding ? "none" : "normal"}
             sortDirection={orderBy === headCell.id ? order : false}
           >
@@ -175,9 +191,10 @@ function EnhancedTableHead(props: EnhancedTableProps) {
 }
 interface EnhancedTableToolbarProps {
   numSelected: number;
+  onTestsChange?: () => void;
 }
 function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
-  const { numSelected } = props;
+  const { numSelected, onTestsChange } = props;
   return (
     <Toolbar
       sx={[
@@ -220,19 +237,22 @@ function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
           </IconButton>
         </Tooltip>
       ) : (
-        <AddNewTestModal />
+        <AddNewTestModal onTestCreated={onTestsChange} />
       )}
     </Toolbar>
   );
 }
-export default function EnhancedTable({ tests }: { tests?: any[] }) {
-  console.log(tests);
+export default function EnhancedTable({ tests, onTestsChange, organizationSlug, projectSlug }: { tests?: any[], onTestsChange?: () => void, organizationSlug: string, projectSlug: string }) {
   const [order, setOrder] = React.useState<Order>("asc");
   const [orderBy, setOrderBy] = React.useState<keyof Data>("calories");
   const [selected, setSelected] = React.useState<readonly number[]>([]);
   const [page, setPage] = React.useState(0);
   const [dense, setDense] = React.useState(false);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const [selectedTest, setSelectedTest] = React.useState<any>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [testToDelete, setTestToDelete] = React.useState<any>(null);
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
@@ -286,6 +306,54 @@ export default function EnhancedTable({ tests }: { tests?: any[] }) {
     setDense(event.target.checked);
   };
 
+  const handleEditTest = (test: any) => {
+    setSelectedTest(test);
+    setEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+    setSelectedTest(null);
+  };
+
+  const handleTestUpdated = () => {
+    if (onTestsChange) {
+      onTestsChange();
+    }
+  };
+
+  const handleDeleteTest = (test: any) => {
+    setTestToDelete(test);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!testToDelete) return;
+
+    try {
+      const response = await fetch(`/api/organizations/${organizationSlug}/projects/${projectSlug}/tests/${testToDelete.slug}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        if (onTestsChange) {
+          onTestsChange();
+        }
+        setDeleteDialogOpen(false);
+        setTestToDelete(null);
+      } else {
+        console.error('Failed to delete test');
+      }
+    } catch (error) {
+      console.error('Error deleting test:', error);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setTestToDelete(null);
+  };
+
   // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows =
     page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
@@ -301,7 +369,7 @@ export default function EnhancedTable({ tests }: { tests?: any[] }) {
   return (
     <Box sx={{ width: "100%" }}>
       <Paper sx={{ width: "100%", mb: 2 }}>
-        <EnhancedTableToolbar numSelected={selected.length} />
+        <EnhancedTableToolbar numSelected={selected.length} onTestsChange={onTestsChange} />
         <TableContainer>
           <Table
             sx={{ minWidth: 750 }}
@@ -342,10 +410,35 @@ export default function EnhancedTable({ tests }: { tests?: any[] }) {
                       />
                     </TableCell>
                     <TableCell>{test.title}</TableCell>
-                    <TableCell align="right">{test.description}</TableCell>
-                    <TableCell align="right">{test.totalVersions}</TableCell>
-                    <TableCell align="right">{test.totalRuns}</TableCell>
-                    <TableCell align="right">{test.totalRuns}</TableCell>
+                    <TableCell>{test.description}</TableCell>
+                    <TableCell>{test.totalVersions}</TableCell>
+                    <TableCell>{test.totalRuns}</TableCell>
+                    <TableCell>{test.totalRuns}</TableCell>
+                    <TableCell>
+                      <Tooltip title="Edit test">
+                        <IconButton
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleEditTest(test);
+                          }}
+                          size="small"
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete test">
+                        <IconButton
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeleteTest(test);
+                          }}
+                          size="small"
+                          color="error"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -355,7 +448,7 @@ export default function EnhancedTable({ tests }: { tests?: any[] }) {
                     height: (dense ? 33 : 53) * emptyRows,
                   }}
                 >
-                  <TableCell colSpan={6} />
+                  <TableCell colSpan={7} />
                 </TableRow>
               )}
             </TableBody>
@@ -371,6 +464,38 @@ export default function EnhancedTable({ tests }: { tests?: any[] }) {
           onRowsPerPageChange={handleChangeRowsPerPage}
         /> */}
       </Paper>
+      {selectedTest && (
+        <EditTestModal
+          isOpen={editModalOpen}
+          onClose={handleCloseEditModal}
+          test={selectedTest}
+          onTestUpdated={handleTestUpdated}
+        />
+      )}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCancelDelete}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">
+          Delete Test
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            Are you sure you want to delete the test "{testToDelete?.title || testToDelete?.versions?.[0]?.title}"?
+            This action cannot be undone and will permanently remove the test and all its versions.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDelete} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

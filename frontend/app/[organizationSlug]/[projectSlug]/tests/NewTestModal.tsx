@@ -20,7 +20,11 @@ const validateTitle = (title?: string) => title && title.length > 0;
 const validateDescription = (description?: string) =>
   description && description.length > 0;
 
-export default function AddNewTestModal() {
+interface AddNewTestModalProps {
+  onTestCreated?: () => void;
+}
+
+export default function AddNewTestModal({ onTestCreated }: AddNewTestModalProps) {
   const params = useParams();
   const { projectSlug, organizationSlug } = params;
 
@@ -114,7 +118,15 @@ export default function AddNewTestModal() {
       )
         .then((res) => {
           setIsSubmitting(false);
-          if (res.status !== 200) {
+          if (res.status === 200) {
+            if (onTestCreated) {
+              onTestCreated();
+            }
+            handleCloseModal();
+            setTitle("");
+            setDescription("");
+            setCreateTestError("");
+          } else {
             res.json().then((data) => {
               setCreateTestError(
                 data?.message || "An error occurred, please try again"
@@ -127,7 +139,7 @@ export default function AddNewTestModal() {
           setCreateTestError("An error occurred, please try again");
         });
     } catch {
-      setCreateTestError("An error occurred during login");
+      setCreateTestError("An error occurred, please try again");
     }
   }
 
@@ -253,7 +265,6 @@ export default function AddNewTestModal() {
                   fullWidth
                   type="submit"
                   variant="contained"
-                  onClick={handleOpenModal}
                   disabled={
                     titleError ||
                     descriptionError ||

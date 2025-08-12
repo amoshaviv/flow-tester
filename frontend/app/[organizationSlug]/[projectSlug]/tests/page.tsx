@@ -6,7 +6,7 @@ import { getDBModels } from "@/lib/sequelize";
 import { getSession } from "@/lib/next-auth";
 import Grid from "@mui/material/Grid";
 import NewTestModal from "./NewTestModal";
-import TestsTable from "./TestsTable";
+import TestsClient from "./TestsClient";
 
 const redirectToSignIn = () =>
   redirect("/authentication/signin", RedirectType.push);
@@ -60,7 +60,7 @@ export default async function Tests(props: {
           totalRuns: 0,
         };
       });
-      return <TestsTable tests={defaultVersionsTests} />;
+      return <TestsClient initialTests={defaultVersionsTests} />;
   } catch (err) {
     console.log(err);
   }
@@ -79,7 +79,7 @@ export default async function Tests(props: {
         </Grid>
       </Grid>
       <Grid sx={{ mt: 2 }} container>
-        <TestsTable />
+        <TestsClient initialTests={[]} />
       </Grid>
     </Box>
   );

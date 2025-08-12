@@ -25,7 +25,12 @@ export const PUT = async (
     const project = await Project.createWithOrganization('Default Project', user, organization);
     const project1 = await Project.createWithOrganization('Default Project', user, organization);
 
-    return NextResponse.json(organization);
+    return NextResponse.json({
+      name: organization.name,
+      slug: organization.slug,
+      domain: organization.domain,
+      profileImageURL: organization.profileImageURL
+    });
   } catch (err: any) {
     let message = "Failed to create organization";
     let status = 400;
