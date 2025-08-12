@@ -38,23 +38,7 @@ export const GET = async (
     if (!project) return notAuthorized();
 
     const tests = await Test.findAllByProjectSlug(projectSlug);
-
-    const sanitizedTests = tests.map(test => ({
-      slug: test.slug,
-      createdAt: test.createdAt,
-      updatedAt: test.updatedAt,
-      versions: test.versions?.map(version => ({
-        slug: version.slug,
-        title: version.title,
-        description: version.description,
-        number: version.number,
-        isDefault: version.isDefault,
-        createdAt: version.createdAt,
-        updatedAt: version.updatedAt
-      }))
-    }));
-
-    return NextResponse.json(sanitizedTests);
+    return NextResponse.json(tests);
   } catch (err: any) {
     console.log(err);
     let message = "Failed to fetch tests";

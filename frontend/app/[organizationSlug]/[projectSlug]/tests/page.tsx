@@ -40,32 +40,11 @@ export default async function Tests(props: {
     if (!project) return redirectToOrganizations();
 
     const tests = await Test.findAllByProjectSlug(projectSlug);
-    const defaultVersionsTests = tests
-      .filter((test) => test.versions.length > 0)
-      .map((test) => {
-        const defaultTestVersion = test.versions.find(
-          (version) => version.isDefault
-        );
-        return {
-          slug: test.slug,
-          title: defaultTestVersion?.title,
-          description: defaultTestVersion?.description,
-          defaultVersion: {
-            slug: defaultTestVersion?.slug,
-            title: defaultTestVersion?.title,
-            description: defaultTestVersion?.description,
-            number: defaultTestVersion?.number,
-          },
-          totalVersions: test.versions.length,
-          totalRuns: 0,
-        };
-      });
-      return <TestsClient initialTests={defaultVersionsTests} />;
+    return <TestsClient initialTests={tests} />;
   } catch (err) {
     console.log(err);
   }
 
-  
   return (
     <Box sx={{ p: 1.2, pl: 2, pr: 2 }}>
       <Grid container>

@@ -14,7 +14,7 @@ import { ITestVersionInstance } from "./test-version";
 export interface ITestInstance extends Model {
   id: number;
   slug: string;
-  versions: ITestVersionInstance[],
+  versions: ITestVersionInstance[];
   setCreatedBy(
     user: IUserInstance,
     options: BelongsToSetAssociationMixinOptions
@@ -89,7 +89,7 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
   Test.findAllByProjectSlug = async function findAllByProjectSlug(
     projectSlug: string
   ) {
-    return this.findAll({
+    const tests = await this.findAll({
       include: [
         {
           association: "project",
@@ -102,6 +102,27 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
         },
       ],
     });
+
+    return tests
+      .filter((test) => test.versions.length > 0)
+      .map((test) => {
+        const defaultTestVersion = test.versions.find(
+          (version) => version.isDefault
+        );
+        return {
+          slug: test.slug,
+          title: defaultTestVersion?.title,
+          description: defaultTestVersion?.description,
+          defaultVersion: {
+            slug: defaultTestVersion?.slug,
+            title: defaultTestVersion?.title,
+            description: defaultTestVersion?.description,
+            number: defaultTestVersion?.number,
+          },
+          totalVersions: test.versions.length,
+          totalRuns: 0,
+        };
+      });
   };
 
   return Test;
