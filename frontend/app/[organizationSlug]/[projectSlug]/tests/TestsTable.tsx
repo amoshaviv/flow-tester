@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { alpha } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -14,13 +13,13 @@ import TableSortLabel from "@mui/material/TableSortLabel";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
-import Checkbox from "@mui/material/Checkbox";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -31,15 +30,6 @@ import Button from "@mui/material/Button";
 import { visuallyHidden } from "@mui/utils";
 import AddNewTestModal from "./NewTestModal";
 import EditTestModal from "./EditTestModal";
-
-interface Data {
-  title: string;
-  description: string;
-  versions: number;
-  runs: number;
-  Run: number;
-  actions: string;
-}
 
 function createData(
   title: string,
@@ -80,72 +70,62 @@ function getComparator<Key extends keyof any>(
 }
 
 interface HeadCell {
-  disablePadding: boolean;
-  id: keyof Data;
+  id: string;
   label: string;
   numeric: boolean;
 }
 
 const headCells: readonly HeadCell[] = [
   {
+    id: "run",
+    numeric: false,
+    label: "",
+  },
+  {
     id: "title",
     numeric: false,
-    disablePadding: true,
     label: "Title",
   },
   {
     id: "description",
     numeric: false,
-    disablePadding: false,
     label: "Description",
   },
   {
     id: "versions",
     numeric: true,
-    disablePadding: false,
     label: "Version",
   },
   {
     id: "runs",
     numeric: true,
-    disablePadding: false,
     label: "Runs",
   },
   {
-    id: "Run",
+    id: "edit",
     numeric: true,
-    disablePadding: false,
-    label: "Run",
+    label: "",
   },
   {
-    id: "actions",
+    id: "delete",
     numeric: false,
-    disablePadding: false,
-    label: "Actions",
+    label: "",
   },
 ];
 
 interface EnhancedTableProps {
-  numSelected: number;
   onRequestSort: (
     event: React.MouseEvent<unknown>,
     property: keyof Data
   ) => void;
-  onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
   order: Order;
   orderBy: string;
-  rowCount: number;
 }
 
+const buttonCellStyle = { width: '28px' };
+
 function EnhancedTableHead(props: EnhancedTableProps) {
-  const {
-    onSelectAllClick,
-    order,
-    orderBy,
-    numSelected,
-    rowCount,
-    onRequestSort,
-  } = props;
+  const { order, orderBy, onRequestSort } = props;
   const createSortHandler =
     (property: keyof Data) => (event: React.MouseEvent<unknown>) => {
       onRequestSort(event, property);
@@ -154,22 +134,15 @@ function EnhancedTableHead(props: EnhancedTableProps) {
   return (
     <TableHead>
       <TableRow>
-        <TableCell padding="checkbox">
-          <Checkbox
-            color="primary"
-            indeterminate={numSelected > 0 && numSelected < rowCount}
-            checked={rowCount > 0 && numSelected === rowCount}
-            onChange={onSelectAllClick}
-            inputProps={{
-              "aria-label": "select all tests",
-            }}
-          />
-        </TableCell>
         {headCells.map((headCell) => (
           <TableCell
             key={headCell.id}
-            padding={headCell.disablePadding ? "none" : "normal"}
             sortDirection={orderBy === headCell.id ? order : false}
+            sx={
+              ["run"].includes(headCell.id)
+                ? buttonCellStyle
+                : {}
+            }
           >
             <TableSortLabel
               active={orderBy === headCell.id}
@@ -190,120 +163,58 @@ function EnhancedTableHead(props: EnhancedTableProps) {
   );
 }
 interface EnhancedTableToolbarProps {
-  numSelected: number;
   onTestsChange?: () => void;
 }
 function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
-  const { numSelected, onTestsChange } = props;
+  const { onTestsChange } = props;
   return (
     <Toolbar
-      sx={[
-        {
-          pl: { sm: 2 },
-          pr: { xs: 1, sm: 1 },
-        },
-        numSelected > 0 && {
-          bgcolor: (theme) =>
-            alpha(
-              theme.palette.primary.main,
-              theme.palette.action.activatedOpacity
-            ),
-        },
-      ]}
+      sx={{
+        pl: { sm: 2 },
+        pr: { xs: 1, sm: 1 },
+      }}
     >
-      {numSelected > 0 ? (
-        <Typography
-          sx={{ flex: "1 1 100%" }}
-          color="inherit"
-          variant="subtitle1"
-          component="div"
-        >
-          {numSelected} selected
-        </Typography>
-      ) : (
-        <Typography
-          sx={{ flex: "1 1 100%" }}
-          variant="h6"
-          id="tableTitle"
-          component="div"
-        >
-          Tests
-        </Typography>
-      )}
-      {numSelected > 0 ? (
-        <Tooltip title="Delete">
-          <IconButton>
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>
-      ) : (
-        <AddNewTestModal onTestCreated={onTestsChange} />
-      )}
+      <Typography
+        sx={{ flex: "1 1 100%" }}
+        variant="h6"
+        id="tableTitle"
+        component="div"
+      >
+        Tests
+      </Typography>
+      <AddNewTestModal onTestCreated={onTestsChange} />
     </Toolbar>
   );
 }
-export default function EnhancedTable({ tests, onTestsChange, organizationSlug, projectSlug }: { tests?: any[], onTestsChange?: () => void, organizationSlug: string, projectSlug: string }) {
+export default function EnhancedTable({
+  tests,
+  onTestsChange,
+  organizationSlug,
+  projectSlug,
+}: {
+  tests?: any[];
+  onTestsChange?: () => void;
+  organizationSlug: string;
+  projectSlug: string;
+}) {
   const [order, setOrder] = React.useState<Order>("asc");
-  const [orderBy, setOrderBy] = React.useState<keyof Data>("calories");
-  const [selected, setSelected] = React.useState<readonly number[]>([]);
-  const [page, setPage] = React.useState(0);
-  const [dense, setDense] = React.useState(false);
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [orderBy, setOrderBy] = React.useState<string>("title");
   const [editModalOpen, setEditModalOpen] = React.useState(false);
   const [selectedTest, setSelectedTest] = React.useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [testToDelete, setTestToDelete] = React.useState<any>(null);
+  const [runDialogOpen, setRunDialogOpen] = React.useState(false);
+  const [testToRun, setTestToRun] = React.useState<any>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isRunning, setIsRunning] = React.useState(false);
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
-    property: keyof Data
+    property: string
   ) => {
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
-  };
-
-  const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.checked) {
-      const newSelected = rows.map((n) => n.id);
-      setSelected(newSelected);
-      return;
-    }
-    setSelected([]);
-  };
-
-  const handleClick = (event: React.MouseEvent<unknown>, id: number) => {
-    const selectedIndex = selected.indexOf(id);
-    let newSelected: readonly number[] = [];
-
-    if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selected, id);
-    } else if (selectedIndex === 0) {
-      newSelected = newSelected.concat(selected.slice(1));
-    } else if (selectedIndex === selected.length - 1) {
-      newSelected = newSelected.concat(selected.slice(0, -1));
-    } else if (selectedIndex > 0) {
-      newSelected = newSelected.concat(
-        selected.slice(0, selectedIndex),
-        selected.slice(selectedIndex + 1)
-      );
-    }
-    setSelected(newSelected);
-  };
-
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const handleChangeDense = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setDense(event.target.checked);
   };
 
   const handleEditTest = (test: any) => {
@@ -328,12 +239,16 @@ export default function EnhancedTable({ tests, onTestsChange, organizationSlug, 
   };
 
   const handleConfirmDelete = async () => {
-    if (!testToDelete) return;
+    if (!testToDelete || isDeleting) return;
 
+    setIsDeleting(true);
     try {
-      const response = await fetch(`/api/organizations/${organizationSlug}/projects/${projectSlug}/tests/${testToDelete.slug}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `/api/organizations/${organizationSlug}/projects/${projectSlug}/tests/${testToDelete.slug}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (response.ok) {
         if (onTestsChange) {
@@ -342,77 +257,96 @@ export default function EnhancedTable({ tests, onTestsChange, organizationSlug, 
         setDeleteDialogOpen(false);
         setTestToDelete(null);
       } else {
-        console.error('Failed to delete test');
+        console.error("Failed to delete test");
       }
     } catch (error) {
-      console.error('Error deleting test:', error);
+      console.error("Error deleting test:", error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const handleCancelDelete = () => {
+    if (isDeleting) return;
     setDeleteDialogOpen(false);
     setTestToDelete(null);
   };
 
-  // Avoid a layout jump when reaching the last page with empty rows.
-  const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
+  const handleRunTest = (test: any) => {
+    setTestToRun(test);
+    setRunDialogOpen(true);
+  };
 
-  const visibleRows = React.useMemo(
-    () =>
-      [...rows]
-        .sort(getComparator(order, orderBy))
-        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
-    [order, orderBy, page, rowsPerPage]
-  );
+  const handleConfirmRun = async () => {
+    if (!testToRun || isRunning) return;
+
+    setIsRunning(true);
+    try {
+      const response = await fetch(
+        `/api/organizations/${organizationSlug}/projects/${projectSlug}/tests/${testToRun.slug}/runs`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        if (onTestsChange) {
+          onTestsChange();
+        }
+        setRunDialogOpen(false);
+        setTestToRun(null);
+      } else {
+        console.error("Failed to run test");
+      }
+    } catch (error) {
+      console.error("Error running test:", error);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleCancelRun = () => {
+    if (isRunning) return;
+    setRunDialogOpen(false);
+    setTestToRun(null);
+  };
 
   return (
     <Box sx={{ width: "100%" }}>
       <Paper sx={{ width: "100%", mb: 2 }}>
-        <EnhancedTableToolbar numSelected={selected.length} onTestsChange={onTestsChange} />
+        <EnhancedTableToolbar onTestsChange={onTestsChange} />
         <TableContainer>
-          <Table
-            sx={{ minWidth: 750 }}
-            aria-labelledby="tableTitle"
-            size={dense ? "small" : "medium"}
-          >
+          <Table sx={{ minWidth: 750 }} aria-labelledby="tableTitle">
             <EnhancedTableHead
-              numSelected={selected.length}
               order={order}
               orderBy={orderBy}
-              onSelectAllClick={handleSelectAllClick}
               onRequestSort={handleRequestSort}
-              rowCount={rows.length}
             />
             <TableBody>
               {tests?.map((test, index) => {
-                const isItemSelected = selected.includes(test.slug);
-                const labelId = `enhanced-table-checkbox-${index}`;
-
                 return (
-                  <TableRow
-                    hover
-                    onClick={(event) => handleClick(event, test.slug)}
-                    role="checkbox"
-                    aria-checked={isItemSelected}
-                    tabIndex={-1}
-                    key={test.slug}
-                    selected={isItemSelected}
-                    sx={{ cursor: "pointer" }}
-                  >
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        color="primary"
-                        checked={isItemSelected}
-                        inputProps={{
-                          "aria-labelledby": labelId,
-                        }}
-                      />
+                  <TableRow hover tabIndex={-1} key={test.slug}>
+                    <TableCell sx={buttonCellStyle}>
+                      <Tooltip title="Run test">
+                        <IconButton
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleRunTest(test);
+                          }}
+                          size="small"
+                          color="success"
+                          sx={{ padding: "4px" }}
+                        >
+                          <PlayArrowIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                     <TableCell>{test.title}</TableCell>
                     <TableCell>{test.description}</TableCell>
                     <TableCell>{test.totalVersions}</TableCell>
-                    <TableCell>{test.totalRuns}</TableCell>
                     <TableCell>{test.totalRuns}</TableCell>
                     <TableCell>
                       <Tooltip title="Edit test">
@@ -426,6 +360,8 @@ export default function EnhancedTable({ tests, onTestsChange, organizationSlug, 
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
+                    </TableCell>
+                    <TableCell>
                       <Tooltip title="Delete test">
                         <IconButton
                           onClick={(event) => {
@@ -442,27 +378,9 @@ export default function EnhancedTable({ tests, onTestsChange, organizationSlug, 
                   </TableRow>
                 );
               })}
-              {emptyRows > 0 && (
-                <TableRow
-                  style={{
-                    height: (dense ? 33 : 53) * emptyRows,
-                  }}
-                >
-                  <TableCell colSpan={7} />
-                </TableRow>
-              )}
             </TableBody>
           </Table>
         </TableContainer>
-        {/* <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={rows.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        /> */}
       </Paper>
       {selectedTest && (
         <EditTestModal
@@ -478,21 +396,62 @@ export default function EnhancedTable({ tests, onTestsChange, organizationSlug, 
         aria-labelledby="delete-dialog-title"
         aria-describedby="delete-dialog-description"
       >
-        <DialogTitle id="delete-dialog-title">
-          Delete Test
-        </DialogTitle>
+        <DialogTitle id="delete-dialog-title">Delete Test</DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
-            Are you sure you want to delete the test "{testToDelete?.title || testToDelete?.versions?.[0]?.title}"?
-            This action cannot be undone and will permanently remove the test and all its versions.
+            Are you sure you want to delete the test "
+            {testToDelete?.title || testToDelete?.versions?.[0]?.title}"? This
+            action cannot be undone and will permanently remove the test and all
+            its versions.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelDelete} color="primary">
+          <Button
+            onClick={handleCancelDelete}
+            color="primary"
+            disabled={isDeleting}
+          >
             Cancel
           </Button>
-          <Button onClick={handleConfirmDelete} color="error" variant="contained">
-            Delete
+          <Button
+            onClick={handleConfirmDelete}
+            color="error"
+            variant="contained"
+            disabled={isDeleting}
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={runDialogOpen}
+        onClose={handleCancelRun}
+        aria-labelledby="run-dialog-title"
+        aria-describedby="run-dialog-description"
+      >
+        <DialogTitle id="run-dialog-title">Run Test</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="run-dialog-description">
+            Are you sure you want to run the test "{testToRun?.title}"? This
+            will create a new test run instance using the default version of the
+            test.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCancelRun}
+            color="primary"
+            disabled={isRunning}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmRun}
+            color="success"
+            variant="contained"
+            disabled={isRunning}
+          >
+            {isRunning ? "Running..." : "Run Test"}
           </Button>
         </DialogActions>
       </Dialog>

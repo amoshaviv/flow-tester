@@ -1,12 +1,41 @@
-import { Sequelize, DataTypes, Model, ModelStatic } from "sequelize";
+import {
+  Sequelize,
+  DataTypes,
+  Model,
+  ModelStatic,
+  BelongsToSetAssociationMixinOptions,
+} from "sequelize";
 import { IModels } from ".";
+import { IUserInstance } from "./user";
+import { ITestVersionInstance } from "./test-version";
+
+export enum TestRunStatus {
+  Pending = "pending",
+  Running = "running",
+  Failed = "failed",
+  Succeeded = "succeeded",
+}
 
 interface ITestRunInstance extends Model {
   id: number;
+  status: TestRunStatus;
+  resultsURL: string;
+  setCreatedBy(
+    user: IUserInstance,
+    options: BelongsToSetAssociationMixinOptions
+  ): void;
+  setVersion(
+    version: ITestVersionInstance,
+    options: BelongsToSetAssociationMixinOptions
+  ): void;
 }
 
 export interface ITestRunModel extends ModelStatic<ITestRunInstance> {
   associate(models: IModels): void;
+  createWithUserAndVersion(
+    user: IUserInstance,
+    version: ITestVersionInstance
+  ): Promise<ITestRunInstance>;
 }
 
 export default function defineTestRunModel(
@@ -14,7 +43,19 @@ export default function defineTestRunModel(
 ): ITestRunModel {
   const TestRun = sequelize.define(
     "TestRun",
-    {},
+    {
+      status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: {
+          notEmpty: true,
+        },
+      },
+      resultsURL: {
+        type: DataTypes.STRING,
+        field: "results_url",
+      },
+    },
     {
       tableName: "tests_runs",
     }
@@ -38,6 +79,18 @@ export default function defineTestRunModel(
         allowNull: false,
       },
     });
+  };
+
+  TestRun.createWithUserAndVersion = async function createWithUserAndVersion(
+    user: IUserInstance,
+    version: ITestVersionInstance
+  ) {
+    const newTestRun = this.build({ status: TestRunStatus.Pending });
+    newTestRun.setCreatedBy(user, { save: false });
+    newTestRun.setVersion(version, { save: false });
+    await newTestRun.save();
+
+    return newTestRun;
   };
 
   return TestRun;

@@ -122,9 +122,16 @@ export default function SigninPage() {
         container
       >
         <Grid container size={{ xs: 10, md: 4 }} spacing={3}>
+          <Grid justifyContent="center" alignItems="center" textAlign="center" size={12}>
+            <img
+              alt="Application"
+              src="/img/logo.png"
+              style={{ height: 64, width: 64 }}
+            />
+          </Grid>
           <Grid justifyContent="center" alignItems="center" size={12}>
             <Typography textAlign="center" variant="h5">
-              Sign in to Flowtester
+              Sign in to FlowTester
             </Typography>
           </Grid>
           <Grid size={12}>
