@@ -9,6 +9,7 @@ import { ulid } from "ulid";
 import { IModels } from ".";
 import { IUserInstance } from "./user";
 import { ITestVersionInstance } from "./test-version";
+import { IProjectInstance } from "./project";
 
 export enum TestRunStatus {
   Pending = "pending",
@@ -22,6 +23,10 @@ interface ITestRunInstance extends Model {
   slug: string;
   status: TestRunStatus;
   resultsURL: string;
+  version: ITestVersionInstance;
+  createdBy: IUserInstance;
+  createdAt: Date;
+  updatedAt: Date;
   setCreatedBy(
     user: IUserInstance,
     options: BelongsToSetAssociationMixinOptions
@@ -38,6 +43,7 @@ export interface ITestRunModel extends ModelStatic<ITestRunInstance> {
     user: IUserInstance,
     version: ITestVersionInstance
   ): Promise<ITestRunInstance>;
+  findAllByProject(project: IProjectInstance): Promise<any[]>;
 }
 
 export default function defineTestRunModel(
@@ -101,6 +107,56 @@ export default function defineTestRunModel(
     await newTestRun.save();
 
     return newTestRun;
+  };
+
+  TestRun.findAllByProject = async function findAllByProject(
+    project: IProjectInstance
+  ) {
+    // Fetch all test runs for this project
+    const testRuns = await TestRun.findAll({
+      include: [
+        {
+          association: "version",
+          attributes: ["id", "title", "description", "number", "slug"],
+          include: [
+            {
+              association: "test",
+              attributes: ["id", "slug"],
+              where: { project_id: project.id },
+              required: true,
+            },
+          ],
+          required: true,
+        },
+        {
+          association: "createdBy",
+          attributes: ["id", "email", "displayName"],
+        },
+      ],
+      order: [["updatedAt", "DESC"]],
+    });
+
+    return testRuns.map((testRun) => ({
+      slug: testRun.slug,
+      status: testRun.status,
+      resultsURL: testRun.resultsURL,
+      createdAt: testRun.createdAt,
+      updatedAt: testRun.updatedAt,
+      version: {
+        title: testRun.version.title,
+        description: testRun.version.description,
+        number: testRun.version.number,
+        slug: testRun.version.slug,
+        test: {
+          slug: testRun.version.test.slug,
+        },
+      },
+      createdBy: {
+        email: testRun.createdBy.email,
+        displayName: testRun.createdBy.displayName,
+        profileImageURL: testRun.createdBy.profileImageURL,
+      },
+    }));
   };
 
   return TestRun;

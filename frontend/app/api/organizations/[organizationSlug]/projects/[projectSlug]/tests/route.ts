@@ -94,8 +94,6 @@ export const PUT = async (
     return NextResponse.json({
       test: {
         slug: test.slug,
-        createdAt: test.createdAt,
-        updatedAt: test.updatedAt
       },
       testVersion: {
         slug: testVersion.slug,
@@ -103,20 +101,18 @@ export const PUT = async (
         description: testVersion.description,
         number: testVersion.number,
         isDefault: testVersion.isDefault,
-        createdAt: testVersion.createdAt,
-        updatedAt: testVersion.updatedAt
       },
       project: {
         name: project.name,
         slug: project.slug,
-        profileImageURL: project.profileImageURL
+        profileImageURL: project.profileImageURL,
       },
       organization: {
         name: organization.name,
         slug: organization.slug,
         domain: organization.domain,
-        profileImageURL: organization.profileImageURL
-      }
+        profileImageURL: organization.profileImageURL,
+      },
     });
   } catch (err: any) {
     console.log(err);

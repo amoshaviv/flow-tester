@@ -17,6 +17,7 @@ export interface ITestVersionInstance extends Model {
   description: string;
   number: number;
   isDefault: boolean;
+  test: ITestInstance;
   setCreatedBy(
     user: IUserInstance,
     options: BelongsToSetAssociationMixinOptions

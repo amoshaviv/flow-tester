@@ -42,30 +42,30 @@ export const GET = async (
       include: [
         {
           model: TestVersion,
-          as: 'version',
-          attributes: ['id', 'title', 'description', 'number', 'slug'],
+          as: "version",
+          attributes: ["id", "title", "description", "number", "slug"],
           include: [
             {
               model: Test,
-              as: 'test',
-              attributes: ['id', 'slug'],
+              as: "test",
+              attributes: ["id", "slug"],
               where: { project_id: project.id },
-              required: true
-            }
+              required: true,
+            },
           ],
-          required: true
+          required: true,
         },
         {
           model: User,
-          as: 'createdBy',
-          attributes: ['id', 'email', 'firstName', 'lastName']
-        }
+          as: "createdBy",
+          attributes: ["id", "email", "firstName", "lastName"],
+        },
       ],
-      order: [['updatedAt', 'DESC']]
+      order: [["updatedAt", "DESC"]],
     });
 
-    return NextResponse.json({ 
-      testRuns: testRuns.map(testRun => ({
+    return NextResponse.json({
+      testRuns: testRuns.map((testRun) => ({
         slug: testRun.slug,
         status: testRun.status,
         resultsURL: testRun.resultsURL,
@@ -77,15 +77,15 @@ export const GET = async (
           number: testRun.version.number,
           slug: testRun.version.slug,
           test: {
-            slug: testRun.version.test.slug
-          }
+            slug: testRun.version.test.slug,
+          },
         },
         createdBy: {
           email: testRun.createdBy.email,
-          firstName: testRun.createdBy.firstName,
-          lastName: testRun.createdBy.lastName
-        }
-      }))
+          displayName: testRun.createdBy.displayName,
+          profileImageURL: testRun.createdBy.profileImageURL,
+        },
+      })),
     });
   } catch (err: any) {
     console.log(err);

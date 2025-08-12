@@ -8,7 +8,11 @@ const notAuthorized = () =>
 export const PATCH = async (
   request: NextRequest,
   context: {
-    params: Promise<{ organizationSlug: string; projectSlug: string; testSlug: string }>;
+    params: Promise<{
+      organizationSlug: string;
+      projectSlug: string;
+      testSlug: string;
+    }>;
   }
 ) => {
   const params = await context.params;
@@ -45,11 +49,11 @@ export const PATCH = async (
       include: [
         {
           model: TestVersion,
-          as: 'versions',
+          as: "versions",
           where: { isDefault: true },
-          required: true
-        }
-      ]
+          required: true,
+        },
+      ],
     });
 
     if (!test) {
@@ -69,12 +73,10 @@ export const PATCH = async (
       true
     );
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: "Test updated successfully",
       test: {
         slug: test.slug,
-        createdAt: test.createdAt,
-        updatedAt: test.updatedAt
       },
       testVersion: {
         slug: newDefaultVersion.slug,
@@ -82,9 +84,7 @@ export const PATCH = async (
         description: newDefaultVersion.description,
         number: newDefaultVersion.number,
         isDefault: newDefaultVersion.isDefault,
-        createdAt: newDefaultVersion.createdAt,
-        updatedAt: newDefaultVersion.updatedAt
-      }
+      },
     });
   } catch (err: any) {
     console.log(err);
@@ -98,7 +98,11 @@ export const PATCH = async (
 export const DELETE = async (
   request: NextRequest,
   context: {
-    params: Promise<{ organizationSlug: string; projectSlug: string; testSlug: string }>;
+    params: Promise<{
+      organizationSlug: string;
+      projectSlug: string;
+      testSlug: string;
+    }>;
   }
 ) => {
   const params = await context.params;
@@ -129,7 +133,7 @@ export const DELETE = async (
 
     // Find the test by slug
     const test = await Test.findOne({
-      where: { slug: testSlug }
+      where: { slug: testSlug },
     });
 
     if (!test) {
@@ -138,14 +142,14 @@ export const DELETE = async (
 
     // Soft delete all related test versions first
     await TestVersion.destroy({
-      where: { test_id: test.id }
+      where: { test_id: test.id },
     });
 
     // Then soft delete the test
     await test.destroy();
 
-    return NextResponse.json({ 
-      message: "Test deleted successfully"
+    return NextResponse.json({
+      message: "Test deleted successfully",
     });
   } catch (err: any) {
     console.log(err);

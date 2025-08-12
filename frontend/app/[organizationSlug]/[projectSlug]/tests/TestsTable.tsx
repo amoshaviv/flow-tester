@@ -31,11 +31,7 @@ import { visuallyHidden } from "@mui/utils";
 import AddNewTestModal from "./NewTestModal";
 import EditTestModal from "./EditTestModal";
 
-function createData(
-  title: string,
-  description: string,
-  versions: number
-): Data {
+function createData(title: string, description: string, versions: number): any {
   return {
     title,
     description,
@@ -114,20 +110,17 @@ const headCells: readonly HeadCell[] = [
 ];
 
 interface EnhancedTableProps {
-  onRequestSort: (
-    event: React.MouseEvent<unknown>,
-    property: keyof Data
-  ) => void;
+  onRequestSort: (event: React.MouseEvent<unknown>, property: string) => void;
   order: Order;
   orderBy: string;
 }
 
-const buttonCellStyle = { width: '28px' };
+const buttonCellStyle = { width: "28px" };
 
 function EnhancedTableHead(props: EnhancedTableProps) {
   const { order, orderBy, onRequestSort } = props;
   const createSortHandler =
-    (property: keyof Data) => (event: React.MouseEvent<unknown>) => {
+    (property: string) => (event: React.MouseEvent<unknown>) => {
       onRequestSort(event, property);
     };
 
@@ -138,11 +131,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
           <TableCell
             key={headCell.id}
             sortDirection={orderBy === headCell.id ? order : false}
-            sx={
-              ["run"].includes(headCell.id)
-                ? buttonCellStyle
-                : {}
-            }
+            sx={["run"].includes(headCell.id) ? buttonCellStyle : {}}
           >
             <TableSortLabel
               active={orderBy === headCell.id}

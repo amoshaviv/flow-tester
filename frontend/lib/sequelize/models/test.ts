@@ -31,7 +31,7 @@ export interface ITestModel extends ModelStatic<ITestInstance> {
     user: IUserInstance,
     project: IProjectInstance
   ): Promise<ITestInstance>;
-  findAllByProjectSlug(projectSlug: string): Promise<ITestInstance[]>;
+  findAllByProjectSlug(projectSlug: string): Promise<any[]>;
 }
 
 export default function defineTestModel(sequelize: Sequelize): ITestModel {

@@ -38,57 +38,11 @@ export default async function RunsPage({
   if (!project) return redirect(`/${organizationSlug}`, RedirectType.push);
 
   // Fetch all test runs for this project
-  const testRuns = await TestRun.findAll({
-    include: [
-      {
-        model: TestVersion,
-        as: "version",
-        attributes: ["id", "title", "description", "number", "slug"],
-        include: [
-          {
-            model: Test,
-            as: "test",
-            attributes: ["id", "slug"],
-            where: { project_id: project.id },
-            required: true,
-          },
-        ],
-        required: true,
-      },
-      {
-        model: User,
-        as: "createdBy",
-        attributes: ["id", "email", "displayName"],
-      },
-    ],
-    order: [["updatedAt", "DESC"]],
-  });
-
-  const serializedTestRuns = testRuns.map((testRun) => ({
-    slug: testRun.slug,
-    status: testRun.status,
-    resultsURL: testRun.resultsURL,
-    createdAt: testRun.createdAt.toISOString(),
-    updatedAt: testRun.updatedAt.toISOString(),
-    version: {
-      title: testRun.version.title,
-      description: testRun.version.description,
-      number: testRun.version.number,
-      slug: testRun.version.slug,
-      test: {
-        slug: testRun.version.test.slug,
-      },
-    },
-    createdBy: {
-      email: testRun.createdBy.email,
-      firstName: testRun.createdBy.firstName,
-      lastName: testRun.createdBy.lastName,
-    },
-  }));
+  const testRuns = await TestRun.findAllByProject(project);
 
   return (
     <TestRunsTable
-      testRuns={serializedTestRuns}
+      testRuns={testRuns}
       organizationSlug={organizationSlug}
       projectSlug={projectSlug}
     />

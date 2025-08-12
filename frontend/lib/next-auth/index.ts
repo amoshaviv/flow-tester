@@ -96,7 +96,7 @@ export const authOptions = {
               organizationInformation.domain,
               newUser
             );
-            console.log(defaultOrganization.isNewRecord);
+            
             const defaultProject = await Project.createWithOrganization(
               `Default Project`,
               newUser,
@@ -108,6 +108,7 @@ export const authOptions = {
             cookieStore.set("lastProject", defaultProject.slug);
 
             return {
+              id: newUser.id.toString(),
               email: newUser.email,
               displayName: newUser.displayName,
               profileImageURL: newUser.profileImageURL,
@@ -134,6 +135,7 @@ export const authOptions = {
         cookieStore.set("lastProject", organizations[0].projects[0].slug);
 
         return {
+          id: user.id.toString(),
           email: user.email,
           displayName: user.displayName,
           profileImageURL: user.profileImageURL,
