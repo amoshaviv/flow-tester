@@ -1,43 +1,96 @@
 import * as React from "react";
 import Container from "@mui/material/Container";
-import Typography from "@mui/material/Typography";
-import Box from "@mui/material/Box";
-import Link from "@mui/material/Link";
-import NextLink from "next/link";
-import { redirect, RedirectType } from 'next/navigation'
+import { redirect, RedirectType } from "next/navigation";
 
 import { getSession } from "@/lib/next-auth";
 import { getDBModels } from "@/lib/sequelize";
+import TestRunsTable from "./TestRunsTable";
 
-export default async function Home() {
+export default async function RunsPage({
+  params,
+}: {
+  params: Promise<{ organizationSlug: string; projectSlug: string }>;
+}) {
+  const { organizationSlug, projectSlug } = await params;
+
   const session = await getSession();
   const email = session?.user?.email;
-  if(!email) return redirect('/authentication/signin', RedirectType.push);
+  if (!email) return redirect("/authentication/signin", RedirectType.push);
 
   const dbModels = await getDBModels();
-  const { Organization, User } = dbModels;
-  
-  const user = await User.findByEmail(email);
-  if(!user) return redirect('/authentication/signin', RedirectType.push);
+  const { Organization, User, Project, Test, TestVersion, TestRun } = dbModels;
 
-  const organizations = await user.getOrganizations();
-  
-  if (!organizations || organizations.length === 0) return redirect('/organizations/create', RedirectType.push);
-  
+  const user = await User.findByEmail(email);
+  if (!user) return redirect("/authentication/signin", RedirectType.push);
+
+  // Check if user has access to this organization
+  const organization = await Organization.findBySlugAndUserEmail(
+    organizationSlug,
+    email
+  );
+  if (!organization) return redirect("/organizations", RedirectType.push);
+
+  // Check if project exists in this organization
+  const project = await Project.findBySlugAndOrganizationSlug(
+    projectSlug,
+    organizationSlug
+  );
+  if (!project) return redirect(`/${organizationSlug}`, RedirectType.push);
+
+  // Fetch all test runs for this project
+  const testRuns = await TestRun.findAll({
+    include: [
+      {
+        model: TestVersion,
+        as: "version",
+        attributes: ["id", "title", "description", "number", "slug"],
+        include: [
+          {
+            model: Test,
+            as: "test",
+            attributes: ["id", "slug"],
+            where: { project_id: project.id },
+            required: true,
+          },
+        ],
+        required: true,
+      },
+      {
+        model: User,
+        as: "createdBy",
+        attributes: ["id", "email", "displayName"],
+      },
+    ],
+    order: [["updatedAt", "DESC"]],
+  });
+
+  const serializedTestRuns = testRuns.map((testRun) => ({
+    slug: testRun.slug,
+    status: testRun.status,
+    resultsURL: testRun.resultsURL,
+    createdAt: testRun.createdAt.toISOString(),
+    updatedAt: testRun.updatedAt.toISOString(),
+    version: {
+      title: testRun.version.title,
+      description: testRun.version.description,
+      number: testRun.version.number,
+      slug: testRun.version.slug,
+      test: {
+        slug: testRun.version.test.slug,
+      },
+    },
+    createdBy: {
+      email: testRun.createdBy.email,
+      firstName: testRun.createdBy.firstName,
+      lastName: testRun.createdBy.lastName,
+    },
+  }));
+
   return (
-    <Container maxWidth="lg">
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
-          Runs
-        </Typography>
-      </Box>
-    </Container>
+    <TestRunsTable
+      testRuns={serializedTestRuns}
+      organizationSlug={organizationSlug}
+      projectSlug={projectSlug}
+    />
   );
 }

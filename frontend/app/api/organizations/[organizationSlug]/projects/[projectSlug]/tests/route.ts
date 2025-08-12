@@ -107,25 +107,6 @@ export const PUT = async (
       true
     );
 
-    // const { email, displayName, profileImageURL } = user;
-    // const output = {
-    //   id: test.id, 
-    //   createdBy: {
-    //     email, displayName, profileImageURL
-    //   }, 
-    //   project: {
-    //     name: project.name,
-    //     slug: project.slug,
-    //     organization: {
-    //       name: organization.name,
-    //       slug: organization.slug,
-    //     }
-    //   },
-    //   defaultVersion: {
-    //     id: 
-    //   }
-    // };
-
     return NextResponse.json({
       test: {
         slug: test.slug,
