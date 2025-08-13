@@ -30,6 +30,7 @@ import Button from "@mui/material/Button";
 import { visuallyHidden } from "@mui/utils";
 import AddNewTestModal from "./NewTestModal";
 import EditTestModal from "./EditTestModal";
+import RunTestModal from "./RunTestModal";
 
 function createData(title: string, description: string, versions: number): any {
   return {
@@ -192,8 +193,8 @@ export default function EnhancedTable({
   const [selectedTest, setSelectedTest] = React.useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [testToDelete, setTestToDelete] = React.useState<any>(null);
-  const [runDialogOpen, setRunDialogOpen] = React.useState(false);
-  const [testToRun, setTestToRun] = React.useState<any>(null);
+  const [runModalOpen, setRunModalOpen] = React.useState(false);
+  const [selectedTestToRun, setSelectedTestToRun] = React.useState<string>("");
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isRunning, setIsRunning] = React.useState(false);
 
@@ -262,17 +263,17 @@ export default function EnhancedTable({
   };
 
   const handleRunTest = (test: any) => {
-    setTestToRun(test);
-    setRunDialogOpen(true);
+    setSelectedTestToRun(test.slug);
+    setRunModalOpen(true);
   };
 
   const handleConfirmRun = async () => {
-    if (!testToRun || isRunning) return;
+    if (!selectedTestToRun || isRunning) return;
 
     setIsRunning(true);
     try {
       const response = await fetch(
-        `/api/organizations/${organizationSlug}/projects/${projectSlug}/tests/${testToRun.slug}/runs`,
+        `/api/organizations/${organizationSlug}/projects/${projectSlug}/tests/${selectedTestToRun}/runs`,
         {
           method: "POST",
           headers: {
@@ -285,8 +286,8 @@ export default function EnhancedTable({
         if (onTestsChange) {
           onTestsChange();
         }
-        setRunDialogOpen(false);
-        setTestToRun(null);
+        setRunModalOpen(false);
+        setSelectedTestToRun("");
       } else {
         console.error("Failed to run test");
       }
@@ -299,8 +300,8 @@ export default function EnhancedTable({
 
   const handleCancelRun = () => {
     if (isRunning) return;
-    setRunDialogOpen(false);
-    setTestToRun(null);
+    setRunModalOpen(false);
+    setSelectedTestToRun("");
   };
 
   return (
@@ -412,38 +413,15 @@ export default function EnhancedTable({
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog
-        open={runDialogOpen}
+      <RunTestModal
+        isOpen={runModalOpen}
         onClose={handleCancelRun}
-        aria-labelledby="run-dialog-title"
-        aria-describedby="run-dialog-description"
-      >
-        <DialogTitle id="run-dialog-title">Run Test</DialogTitle>
-        <DialogContent>
-          <DialogContentText id="run-dialog-description">
-            Are you sure you want to run the test "{testToRun?.title}"? This
-            will create a new test run instance using the default version of the
-            test.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={handleCancelRun}
-            color="primary"
-            disabled={isRunning}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirmRun}
-            color="success"
-            variant="contained"
-            disabled={isRunning}
-          >
-            {isRunning ? "Running..." : "Run Test"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        tests={tests || []}
+        selectedTest={selectedTestToRun}
+        onTestChange={setSelectedTestToRun}
+        onRunTest={handleConfirmRun}
+        isRunning={isRunning}
+      />
     </Box>
   );
 }

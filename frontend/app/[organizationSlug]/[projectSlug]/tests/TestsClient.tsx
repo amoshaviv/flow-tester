@@ -18,28 +18,7 @@ export default function TestsClient({ initialTests }: { initialTests: any[] }) {
       );
       if (response.ok) {
         const data = await response.json();
-        // Transform the data similar to server-side processing
-        const defaultVersionsTests = data
-          .filter((test: any) => test.versions.length > 0)
-          .map((test: any) => {
-            const defaultTestVersion = test.versions.find(
-              (version: any) => version.isDefault
-            );
-            return {
-              slug: test.slug,
-              title: defaultTestVersion?.title,
-              description: defaultTestVersion?.description,
-              defaultVersion: {
-                slug: defaultTestVersion?.slug,
-                title: defaultTestVersion?.title,
-                description: defaultTestVersion?.description,
-                number: defaultTestVersion?.number,
-              },
-              totalVersions: test.versions.length,
-              totalRuns: 0,
-            };
-          });
-        setTests(defaultVersionsTests);
+        setTests(data);
       }
     } catch (error) {
       console.error("Failed to refresh tests:", error);
