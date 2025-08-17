@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDBModels } from "@/lib/sequelize";
 import { getToken } from "next-auth/jwt";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 
 const notAuthorized = () =>
   NextResponse.json({ message: "Not Authorized" }, { status: 401 });
+
+const sqsClient = new SQSClient({ region: "us-west-2" });
+const QUEUE_URL = "https://sqs.us-west-2.amazonaws.com/746664778706/flow-tester-test-runs-queue";
 
 export const POST = async (
   request: NextRequest,
@@ -62,6 +66,28 @@ export const POST = async (
 
     // Create new test run
     const newTestRun = await TestRun.createWithUserAndVersion(user, defaultVersion);
+
+    // Send message to SQS queue
+    try {
+      const message = {
+        testRunSlug: newTestRun.slug,
+        testSlug: testSlug,
+        projectSlug: projectSlug,
+        organizationSlug: organizationSlug,
+        createdAt: newTestRun.createdAt,
+        userEmail: user.email,
+        task: defaultVersion.description,
+      };
+
+      const command = new SendMessageCommand({
+        QueueUrl: QUEUE_URL,
+        MessageBody: JSON.stringify(message)
+      });
+
+      await sqsClient.send(command);
+    } catch (sqsError) {
+      console.error("Failed to send SQS message:", sqsError);
+    }
 
     return NextResponse.json({ 
       message: "Test run created successfully",

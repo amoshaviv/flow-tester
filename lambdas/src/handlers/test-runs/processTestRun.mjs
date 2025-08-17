@@ -1,6 +1,9 @@
 import { getLambdaResponse } from "../../lib/lambda.mjs";
 import sentry from "../../lib/sentry.mjs";
-import { addFlowTestRunToQueue, countActiveMessagesInQueue } from "../../lib/queue.mjs";
+import {
+  addFlowTestRunToQueue,
+  countActiveMessagesInQueue,
+} from "../../lib/queue.mjs";
 import { getActiveInstancesList } from "../../lib/ec2.mjs";
 
 const genericAddFlowTestError = {
@@ -8,18 +11,30 @@ const genericAddFlowTestError = {
   httpCode: 401,
 };
 
-export default async function addFlowTestRunHandler(event) {
+async function processMessage(record) {
+  // Extract message details
+  const messageBody = record.body;
+  console.log('--------- message received ------------');
+  console.log(messageBody);
+  console.log('--------- message processed ------------');
+}
+
+export default async function processTestRunHandler(event) {
   let output = null;
 
   try {
-    // Get flow test from API
+    // Process each message
+    for (const record of event.Records) {
+      try {
+        await processMessage(record);
+      } catch (error) {
+        console.error("Error processing message:", error);
+        // Throw error to send message back to queue or DLQ
+        throw error;
+      }
+    }
 
-    // TODO: Get the flow test from the DB in order to get it executed and make sure it exists
-    // Make sure the flow test is valid and has all the required fields and that the user has access to it
-    const flowTest = JSON.parse(event.body);
-    
     // Add flow test to queue
-    const response = await addFlowTestRunToQueue(flowTest);
     const numberOfActiveMessages = await countActiveMessagesInQueue();
     const activeInstances = await getActiveInstancesList();
 
@@ -28,7 +43,7 @@ export default async function addFlowTestRunHandler(event) {
       numberOfActiveMessages,
       activeInstances,
       httpCode: 200,
-    };  
+    };
 
     // Check if there are enough consumers live by checking the queue size and the number of consumers live
     // getActiveInstancesList

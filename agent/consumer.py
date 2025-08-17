@@ -16,7 +16,6 @@ REGION = 'us-west-2'
 # Initialize SQS client
 sqs = client('sqs', region_name=REGION)
 
-
 def base64_to_s3_image(base64_string: str, path: str):
     img_data = base64.b64decode(base64_string)
     s3.put_object(
@@ -26,12 +25,12 @@ def base64_to_s3_image(base64_string: str, path: str):
         ContentType='image/png',
     )
 
-def save_result_screenshots(id, result):
+def save_result_screenshots(slug, result):
     screenshots = result.screenshots()
     number_screenshots = 0
     for next_screenshot in screenshots:
         number_screenshots=number_screenshots+1
-        path = f"test-runs/{id}/screenshots/{number_screenshots}.png"
+        path = f"test-runs/{slug}/screenshots/{number_screenshots}.png"
         base64_to_s3_image(
             base64_string=str(next_screenshot),
             path=path
@@ -44,7 +43,7 @@ class SafeJSONEncoder(json.JSONEncoder):
         except TypeError:
             return str(obj) 
 
-def save_result_data(id, result):
+def save_result_data(slug, result):
     model_actions = result.model_actions()     # All actions with their parameters
     actions_results = result.action_results()
     model_thoughts = result.model_thoughts()
@@ -65,7 +64,7 @@ def save_result_data(id, result):
         "errors": errors
     }
     run_json = json.dumps(run_data, cls=SafeJSONEncoder, indent=2)
-    actions_path = f"test-runs/{id}/run.json"
+    actions_path = f"test-runs/{slug}/run.json"
     s3.put_object(
         Bucket=S3_BUCKET_NAME,
         Key=actions_path,
@@ -73,18 +72,18 @@ def save_result_data(id, result):
         ContentType='application/json',
     )
 
-def save_result(id, result):
-    save_result_screenshots(id, result)
-    save_result_data(id, result)
+def save_result(slug, result):
+    save_result_screenshots(slug, result)
+    save_result_data(slug, result)
 
 def process_message(body):
     """Simulate a task, replace this with real logic."""
     print(f"Processing message: {body}")
     message = json.loads(body)
     task = message['task']
-    id = message['id']
+    slug = message['testRunSlug']
     result = asyncio.run(processTask(task))
-    save_result(id, result)
+    save_result(slug, result)
     print("Task complete.")
 
 def worker():

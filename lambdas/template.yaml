@@ -4,41 +4,108 @@ Description: >-
 
 Transform:
   - AWS::Serverless-2016-10-31
-
-Globals:
-  Function:
-    Timeout: 20
-  Api:
-    BinaryMediaTypes:
-      - image/jpeg
-      - text/html
-    Cors:
-      AllowMethods: "'GET,POST,DELETE,OPTIONS'"
-      AllowHeaders: "'*'"
-      AllowOrigin: "'*'"
 Resources:
-  AddFlowTestRun:
-    Type: AWS::Serverless::Function
+  # Your SQS Queue (same as before)
+  FlowTesterTestRunsQueue:
+    Type: AWS::SQS::Queue
     Properties:
-      FunctionName: add-flow-test-run
-      Handler: src/api/flows.addFlowTestRunHandler
-      Runtime: nodejs22.x
-      Architectures:
-        - x86_64
-      MemorySize: 256
-      Timeout: 100
-      Description: Add Flow Test Run
-      Policies:
-        - AmazonEC2FullAccess
-        - AmazonSQSFullAccess
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /flows/{flowId}/runs
-            Method: POST
-  
+      QueueName: flow-tester-test-runs-queue
+      VisibilityTimeout: 300
+
+  # Auto Scaling Group with adjusted capacity
+  FlowTesterBrowserAgentAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: flow-tester-browser-agent-auto-scaling-group
+      LaunchTemplate:
+        LaunchTemplateId: "lt-0b0f4d5df35e51017"
+        Version: 9
+      MinSize: 1              # Always keep at least 1 instance
+      MaxSize: 10             # Increased max for high message volumes
+      DesiredCapacity: 1      # Start with 1 instance
+      AvailabilityZones:
+        - us-west-2a
+        - us-west-2b
+
+  # Scale Up Policy - More aggressive scaling
+  ScaleUpPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref FlowTesterBrowserAgentAutoScalingGroup
+      PolicyType: StepScaling
+      AdjustmentType: ChangeInCapacity
+      StepAdjustments:
+        # For 2-10 messages above threshold (4-12 total): add 1 instance
+        - MetricIntervalLowerBound: 0
+          MetricIntervalUpperBound: 8
+          ScalingAdjustment: 1
+        # For 10-20 messages above threshold (12-22 total): add 3 instances  
+        - MetricIntervalLowerBound: 8
+          MetricIntervalUpperBound: 18
+          ScalingAdjustment: 3
+        # For 20+ messages above threshold (22+ total): add 5 instances
+        - MetricIntervalLowerBound: 18
+          ScalingAdjustment: 5
+
+  # Scale Down Policy - Conservative scaling down
+  ScaleDownPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref FlowTesterBrowserAgentAutoScalingGroup
+      PolicyType: StepScaling
+      AdjustmentType: ChangeInCapacity
+      StepAdjustments:
+        # Only remove 1 instance at a time when below threshold
+        - MetricIntervalUpperBound: 0
+          ScalingAdjustment: -1
+
+  # Scale Up Alarm - Trigger when messages > 2 (need more instances)
+  HighQueueDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: high-queue-depth-ratio
+      AlarmDescription: Scale up when queue exceeds 2 messages (1:2 ratio)
+      MetricName: ApproximateNumberOfMessages
+      Namespace: AWS/SQS
+      Statistic: Average
+      Period: 60              # Check every minute for faster response
+      EvaluationPeriods: 1    # Trigger immediately (no delay)
+      Threshold: 2            # Trigger when > 2 messages
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt FlowTesterTestRunsQueue.QueueName
+      AlarmActions:
+        - !Ref ScaleUpPolicy
+
+  # Scale Down Alarm - Only scale down when queue is nearly empty
+  LowQueueDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: low-queue-depth-ratio
+      AlarmDescription: Scale down when queue is empty (maintain 1:2 ratio)
+      MetricName: ApproximateNumberOfMessages
+      Namespace: AWS/SQS
+      Statistic: Average
+      Period: 300             # 5 minute periods for scale down
+      EvaluationPeriods: 3    # Wait 15 minutes before scaling down
+      Threshold: 1            # Scale down when <= 1 message
+      ComparisonOperator: LessThanOrEqualToThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt FlowTesterTestRunsQueue.QueueName
+      AlarmActions:
+        - !Ref ScaleDownPolicy
+
 Outputs:
-  WebEndpoint:
-    Description: "API Gateway endpoint URL for Prod stage"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+  QueueUrl:
+    Description: URL of the processing queue
+    Value: !Ref FlowTesterTestRunsQueue
+    Export:
+      Name: !Sub "${AWS::StackName}-QueueUrl"
+      
+  QueueArn:
+    Description: ARN of the processing queue
+    Value: !GetAtt FlowTesterTestRunsQueue.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-QueueArn"
