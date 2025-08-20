@@ -4,6 +4,7 @@ import time
 from agent import processTask
 import json
 import base64
+from db_operations import update_test_run_to_running, update_test_run_to_failed, update_test_run_to_succeeded
 
 s3 = client('s3')
 
@@ -77,14 +78,40 @@ def save_result(slug, result):
     save_result_data(slug, result)
 
 def process_message(body):
-    """Simulate a task, replace this with real logic."""
+    """Process a task and update test run status."""
     print(f"Processing message: {body}")
     message = json.loads(body)
     task = message['task']
     slug = message['testRunSlug']
-    result = asyncio.run(processTask(task))
-    save_result(slug, result)
-    print("Task complete.")
+    
+    # Update test run status to 'running' when processing starts
+    print(f"Updating test run {slug} status to 'running'")
+    if update_test_run_to_running(slug):
+        print(f"Successfully updated test run {slug} status to 'running'")
+    else:
+        print(f"Failed to update test run {slug} status to 'running'")
+    
+    try:
+        result = asyncio.run(processTask(task))
+        save_result(slug, result)
+        
+        # Update status to 'succeeded' if task completed successfully
+        print(f"Task completed successfully, updating test run {slug} status to 'succeeded'")
+        if update_test_run_to_succeeded(slug):
+            print(f"Successfully updated test run {slug} status to 'succeeded'")
+        else:
+            print(f"Failed to update test run {slug} status to 'succeeded'")
+            
+        print("Task complete.")
+    except Exception as e:
+        # Update status to 'failed' if task failed
+        print(f"Task failed with error: {e}")
+        print(f"Updating test run {slug} status to 'failed'")
+        if update_test_run_to_failed(slug):
+            print(f"Successfully updated test run {slug} status to 'failed'")
+        else:
+            print(f"Failed to update test run {slug} status to 'failed'")
+        raise e
 
 def worker():
     time.sleep(10)
