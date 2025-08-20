@@ -4,7 +4,7 @@ import {
   addFlowTestRunToQueue,
   countActiveMessagesInQueue,
 } from "../../lib/queue.mjs";
-import { getActiveInstancesList } from "../../lib/ec2.mjs";
+import { getActiveInstancesList, launchInstanceFromTemplate } from "../../lib/ec2.mjs";
 
 const genericAddFlowTestError = {
   error: "Error adding a flow test run",
@@ -13,9 +13,21 @@ const genericAddFlowTestError = {
 
 async function processMessage(record) {
   // Extract message details
-  const messageBody = record.body;
+  const messageBody = JSON.parse(record.body);
   console.log('--------- message received ------------');
-  console.log(messageBody);
+  
+  // Check if message type is "test-run" and route to FlowTesterTestRunsQueue
+  if (messageBody.taskType === "test-run") {
+    console.log('Routing test-run message to FlowTesterTestRunsQueue');
+    await addFlowTestRunToQueue(messageBody);
+    console.log('Message successfully sent to FlowTesterTestRunsQueue');
+    
+    // Launch EC2 instance from template
+    console.log('Launching EC2 instance from template');
+    await launchInstanceFromTemplate();
+    console.log('EC2 instance launch initiated');
+  }
+  
   console.log('--------- message processed ------------');
 }
 
@@ -39,18 +51,10 @@ export default async function processTestRunHandler(event) {
     const activeInstances = await getActiveInstancesList();
 
     output = {
-      response,
       numberOfActiveMessages,
       activeInstances,
       httpCode: 200,
     };
-
-    // Check if there are enough consumers live by checking the queue size and the number of consumers live
-    // getActiveInstancesList
-
-    // If there are enough consumers live, return 200
-
-    // If there are not enough consumers live, create a new consumer
   } catch (err) {
     console.log(err);
     sentry.captureException(err);

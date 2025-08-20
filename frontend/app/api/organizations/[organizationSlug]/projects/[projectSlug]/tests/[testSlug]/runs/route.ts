@@ -7,7 +7,7 @@ const notAuthorized = () =>
   NextResponse.json({ message: "Not Authorized" }, { status: 401 });
 
 const sqsClient = new SQSClient({ region: "us-west-2" });
-const QUEUE_URL = "https://sqs.us-west-2.amazonaws.com/746664778706/flow-tester-test-runs-queue";
+const QUEUE_URL = "https://sqs.us-west-2.amazonaws.com/746664778706/flow-tester-tasks-queue";
 
 export const POST = async (
   request: NextRequest,
@@ -70,6 +70,7 @@ export const POST = async (
     // Send message to SQS queue
     try {
       const message = {
+        taskType: "test-run",
         testRunSlug: newTestRun.slug,
         testSlug: testSlug,
         projectSlug: projectSlug,

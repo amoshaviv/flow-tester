@@ -1,5 +1,7 @@
-import { EC2Client, DescribeInstancesCommand } from "@aws-sdk/client-ec2";
-const LAUNCH_TEMPLATE_NAME = "flow-tester-browser-agent-launch-template";
+import { EC2Client, DescribeInstancesCommand, RunInstancesCommand } from "@aws-sdk/client-ec2";
+const LAUNCH_TEMPLATE_ID = "lt-0b0f4d5df35e51017";
+
+const ec2Client = new EC2Client({ region: "us-west-2" });
 
 export async function getActiveInstancesList() {
   const client = new EC2Client({ region: "us-west-2" });
@@ -22,11 +24,11 @@ export async function getActiveInstancesList() {
   return filteredInstances;
 }
 
-async function launchInstanceFromTemplate() {
+export async function launchInstanceFromTemplate() {
     const params = {
       LaunchTemplate: {
-        LaunchTemplateName: LAUNCH_TEMPLATE_NAME, // or use LaunchTemplateId
-        Version: "$Latest", // or a specific version number like "1"
+        LaunchTemplateId: LAUNCH_TEMPLATE_ID,
+        Version: "$Latest",
       },
       MinCount: 1,
       MaxCount: 1,
@@ -35,8 +37,10 @@ async function launchInstanceFromTemplate() {
     try {
       const data = await ec2Client.send(new RunInstancesCommand(params));
       console.log("Success: Instance launched", data.Instances[0].InstanceId);
+      return data.Instances[0];
     } catch (err) {
       console.error("Error launching instance", err);
+      throw err;
     }
   }
   
