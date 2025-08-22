@@ -44,18 +44,32 @@ class SafeJSONEncoder(json.JSONEncoder):
         except TypeError:
             return str(obj) 
 
+def map_screenshots_to_paths(slug, screenshots):
+    mapped = []
+    for idx, screenshot in enumerate(screenshots, start=1):
+        path = f"test-runs/{slug}/screenshots/{idx}.png"
+        mapped.append({"id": idx, "path": path})
+    return mapped
+
+
 def save_result_data(slug, result):
-    model_actions = result.model_actions()     # All actions with their parameters
+    screenshots = map_screenshots_to_paths(slug, result.screenshots())
+    model_actions = result.model_actions()
     actions_results = result.action_results()
     model_thoughts = result.model_thoughts()
     model_actions_filtered = result.model_actions_filtered()
     action_names = result.action_names()
     final_result = result.final_result()
     extracted_content = result.extracted_content()
+    is_done = result.is_done()
+    has_errors = result.has_errors()
     errors = result.errors()
 
     run_data = {
+        "is_done": is_done,
+        "has_errors": has_errors,
         "model_actions": model_actions,
+        "screenshots": screenshots,
         "actions_results": actions_results,
         "model_actions_filtered": model_actions_filtered,
         "model_thoughts": model_thoughts,
@@ -94,14 +108,32 @@ def process_message(body):
     try:
         result = asyncio.run(processTask(task))
         save_result(slug, result)
-        
-        # Update status to 'succeeded' if task completed successfully
-        print(f"Task completed successfully, updating test run {slug} status to 'succeeded'")
-        if update_test_run_to_succeeded(slug):
-            print(f"Successfully updated test run {slug} status to 'succeeded'")
+        is_done = result.is_done()
+        model_actions = result.model_actions()
+
+        mark_failed = False
+        if is_done is False:
+            mark_failed = True
+        elif model_actions and isinstance(model_actions, list):
+            last_action = model_actions[-1]
+            if isinstance(last_action, dict):
+                done_prop = last_action.get("done")
+                if isinstance(done_prop, dict) and done_prop.get("success") is False:
+                    mark_failed = True
+
+        if mark_failed:
+            print(f"Task failed, updating test run {slug} status to 'failed'")
+            if update_test_run_to_failed(slug):
+                print(f"Successfully updated test run {slug} status to 'failed'")
+            else:
+                print(f"Failed to update test run {slug} status to 'failed'")
         else:
-            print(f"Failed to update test run {slug} status to 'succeeded'")
-            
+            print(f"Task completed successfully, updating test run {slug} status to 'succeeded'")
+            if update_test_run_to_succeeded(slug):
+                print(f"Successfully updated test run {slug} status to 'succeeded'")
+            else:
+                print(f"Failed to update test run {slug} status to 'succeeded'")
+
         print("Task complete.")
     except Exception as e:
         # Update status to 'failed' if task failed

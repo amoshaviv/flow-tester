@@ -44,6 +44,11 @@ export interface ITestRunModel extends ModelStatic<ITestRunInstance> {
     version: ITestVersionInstance
   ): Promise<ITestRunInstance>;
   findAllByProject(project: IProjectInstance): Promise<any[]>;
+  findBySlug(
+    slug: string,
+    testSlug: string,
+    project: IProjectInstance
+  ): Promise<ITestRunInstance | null>;
 }
 
 export default function defineTestRunModel(
@@ -107,6 +112,34 @@ export default function defineTestRunModel(
     await newTestRun.save();
 
     return newTestRun;
+  };
+
+  TestRun.findBySlug = async function findBySlug(
+    slug: string,
+    testSlug: string,
+    project: IProjectInstance
+  ) {
+    return this.findOne({
+      where: { slug },
+      include: [
+        {
+          association: "version",
+          attributes: ["id", "title", "description", "number", "slug"],
+          include: [
+            {
+              association: "test",
+              attributes: ["slug"],
+              where: { slug: testSlug, project_id: project.id },
+              required: true,
+            },
+          ],
+        },
+        {
+          association: "createdBy",
+          attributes: ["id", "email", "displayName"],
+        },
+      ],
+    });
   };
 
   TestRun.findAllByProject = async function findAllByProject(

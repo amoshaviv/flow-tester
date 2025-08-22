@@ -14,6 +14,8 @@ import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
 import Chip from "@mui/material/Chip";
 import { visuallyHidden } from "@mui/utils";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface TestRunData {
   slug: string;
@@ -161,7 +163,7 @@ const getStatusColor = (status: string) => {
 };
 
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleString();
+  return new Date(dateString).toISOString();
 };
 
 export default function TestRunsTable({ 
@@ -175,6 +177,7 @@ export default function TestRunsTable({
 }) {
   const [order, setOrder] = React.useState<Order>("desc");
   const [orderBy, setOrderBy] = React.useState<keyof TestRunData>("updatedAt");
+  const router = useRouter();
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
@@ -183,6 +186,14 @@ export default function TestRunsTable({
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
+  };
+
+  const handleRowClick = (testRun: any) => {
+    // Navigate to the test run page using the test slug from the version
+    const testSlug = testRun.version?.test?.slug;
+    if (testSlug) {
+      router.push(`/${organizationSlug}/${projectSlug}/tests/${testSlug}/runs/${testRun.slug}`);
+    }
   };
 
   // Sort the test runs
@@ -206,7 +217,18 @@ export default function TestRunsTable({
             <TableBody>
               {sortedTestRuns?.map((testRun) => {
                 return (
-                  <TableRow hover tabIndex={-1} key={testRun.slug}>
+                  <TableRow 
+                    hover 
+                    tabIndex={-1} 
+                    key={testRun.slug}
+                    onClick={() => handleRowClick(testRun)}
+                    sx={{ 
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: 'action.hover'
+                      }
+                    }}
+                  >
                     <TableCell>{testRun.version?.title || "N/A"}</TableCell>
                     <TableCell>
                       <Chip 
