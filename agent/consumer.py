@@ -42,7 +42,32 @@ class SafeJSONEncoder(json.JSONEncoder):
         try:
             return super().default(obj)
         except TypeError:
-            return str(obj) 
+            # If the object has a __dict__, convert it to a dictionary
+            if hasattr(obj, '__dict__'):
+                return obj.__dict__
+            # If the object has attributes like 'thinking', 'evaluation_previous_goal', etc.
+            # try to extract them as a dictionary
+            elif hasattr(obj, 'thinking'):
+                return {
+                    'thinking': getattr(obj, 'thinking', ''),
+                    'evaluation_previous_goal': getattr(obj, 'evaluation_previous_goal', ''),
+                    'memory': getattr(obj, 'memory', ''),
+                    'next_goal': getattr(obj, 'next_goal', ''),
+                }
+            elif hasattr(obj, 'is_done'):
+                return {
+                    'is_done': getattr(obj, 'is_done', None),
+                    'success': getattr(obj, 'success', None),
+                    'error': getattr(obj, 'error', None),
+                    'attachments': getattr(obj, 'attachments', None),
+                    'long_term_memory': getattr(obj, 'long_term_memory', ''),
+                    'extracted_content': getattr(obj, 'extracted_content', ''),
+                    'include_extracted_content_only_once': getattr(obj, 'include_extracted_content_only_once', None),
+                    'include_in_memory': getattr(obj, 'include_in_memory', None),
+                }
+            # For any other non-serializable object, convert to string as fallback
+            else:
+                return str(obj) 
 
 def map_screenshots_to_paths(slug, screenshots):
     mapped = []

@@ -161,7 +161,7 @@ function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
     <Toolbar
       sx={{
         pl: { sm: 2 },
-        pr: { xs: 1, sm: 1 },
+        pr: { xs: 1, sm: 2 },
       }}
     >
       <Typography

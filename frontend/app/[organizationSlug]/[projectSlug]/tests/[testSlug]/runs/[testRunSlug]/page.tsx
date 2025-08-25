@@ -14,6 +14,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/next-auth";
 import { getDBModels } from "@/lib/sequelize";
 import { getTestRunSummary } from "@/lib/s3";
+import ScreenshotsGrid from "./ScreenshotsGrid";
 
 interface TestRunData {
   slug: string;
@@ -33,6 +34,11 @@ interface TestRunData {
   };
 }
 
+function capitalize(status: string) {
+  if (!status) return "";
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 function getStatusColor(status: string) {
   switch (status) {
     case "pending":
@@ -48,7 +54,7 @@ function getStatusColor(status: string) {
   }
 }
 
-function formatDateTime(dateString: string) {
+function formatDateTime(dateString: Date) {
   return new Date(dateString).toLocaleString();
 }
 
@@ -84,10 +90,10 @@ async function fetchTestRunData(
 export default async function TestRunPage({
   params,
 }: {
-  params: Promise<{ 
-    organizationSlug: string; 
-    projectSlug: string; 
-    testSlug: string; 
+  params: Promise<{
+    organizationSlug: string;
+    projectSlug: string;
+    testSlug: string;
     testRunSlug: string;
   }>;
 }) {
@@ -128,201 +134,165 @@ export default async function TestRunPage({
   const testRunSummary = await getTestRunSummary(testRunSlug);
 
   return (
-    <Grid>
-      {/* Header with back button */}
-      <Box sx={{ mb: 3, display: "flex", alignItems: "center"}}>
-        <Button
-          component={Link}
-          href={`/${organizationSlug}/${projectSlug}/runs`}
-          startIcon={<ArrowBackIcon />}
-          variant="outlined"
-        >
-          Back to Runs
-        </Button>
-        <Typography variant="h4" component="h1">
-          Test Run Details
-        </Typography>
+    <Box>
+      <Box
+        sx={{
+          width: '100%',
+          pl: { sm: 2 },
+          pr: { xs: 1, sm: 2 },
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
+        }}>
+        <Grid container width="100%">
+          <Grid size={{ md: 6, xs: 12 }}>
+            <Typography variant="h6" component="h1">
+              {testRun.version.title} - Test Run Details
+            </Typography>
+          </Grid>
+          <Grid size={{ md: 6, xs: 12 }} textAlign="right">
+            <Chip
+              label={capitalize(testRun.status)}
+              color={getStatusColor(testRun.status)}
+              sx={{ mt: 0.5, fontWeight: 'bold' }}
+            />
+          </Grid>
+        </Grid>
       </Box>
 
-      <Grid container spacing={3}>
-        {/* Test Run Status and Basic Info */}
-        <Grid xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Run Information
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column"}}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Status
-                  </Typography>
-                  <Chip 
-                    label={testRun.status} 
-                    color={getStatusColor(testRun.status)}
-                    sx={{ mt: 0.5 }}
-                  />
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Run ID
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontFamily: "monospace" }}>
-                    {testRun.slug}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Created At
-                  </Typography>
-                  <Typography variant="body1">
-                    {formatDateTime(testRun.createdAt)}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Last Updated
-                  </Typography>
-                  <Typography variant="body1">
-                    {formatDateTime(testRun.updatedAt)}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Created By
-                  </Typography>
-                  <Typography variant="body1">
-                    {testRun.createdBy.displayName}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Test Version Information */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Test Version
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column"}}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Title
-                  </Typography>
-                  <Typography variant="body1">
-                    {testRun.version.title}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Version Number
-                  </Typography>
-                  <Typography variant="body1">
-                    v{testRun.version.number}
-                    {testRun.version.isDefault && (
-                      <Chip 
-                        label="Default" 
-                        size="small" 
-                        sx={{ ml: 1 }}
-                        color="primary"
-                      />
-                    )}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Version ID
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontFamily: "monospace" }}>
-                    {testRun.version.slug}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Description
-                  </Typography>
-                  <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
-                    {testRun.version.description}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Screenshots Section */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Screenshots
-              </Typography>
-              {testRun.status === "pending" || testRun.status === "running" ? (
-                <Typography variant="body1" color="text.secondary">
-                  Screenshots will be available after the test run completes.
+      <Box
+        sx={{
+          pl: { sm: 2 },
+          pr: { xs: 1, sm: 2 },
+        }}>
+        <Grid container spacing={2}>
+          <Grid size={{ md: 6, xs: 12 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Run Information
                 </Typography>
-              ) : (
-                <Box sx={{ display: "flex", flexWrap: "wrap"}}>
-                  {/* We'll need to implement screenshot loading from S3 */}
-                  <Typography variant="body1" color="text.secondary">
-                    Screenshots loading will be implemented based on S3 storage structure.
-                  </Typography>
-                  {/* Placeholder for screenshots */}
-                  {testRunSummary && testRunSummary.screenshots.map((screenshot) => (
-                    <Box
-                      key={screenshot.id}
-                      sx={{
-                        width: 200,
-                        height: 150,
-                        backgroundColor: "grey.200",
-                        border: "1px solid",
-                        borderColor: "grey.300",
-                        borderRadius: 1,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <img src={screenshot.path}/>
-                    </Box>
-                  ))}
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Results Section */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Test Results
-              </Typography>
-              {testRun.status === "pending" || testRun.status === "running" ? (
-                <Typography variant="body1" color="text.secondary">
-                  Test results will be available after the test run completes.
-                </Typography>
-              ) : (
-                <Box>
-                  <Typography variant="body1" color="text.secondary">
-                    Detailed test results and execution data will be displayed here.
-                  </Typography>
-                  {/* Placeholder for results data */}
-                  <Box sx={{ mt: 2, p: 2, backgroundColor: "grey.50", borderRadius: 1 }}>
-                    <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
-                      Results data from S3: test-runs/{testRun.slug}/run.json
+                <Box sx={{ display: "flex", flexDirection: "column" }}>
+                  <Box sx={{ display: 'flex' }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ mr: 1 }}>
+                      Status:
+                    </Typography>
+                    <Typography fontWeight="bold" variant="body1" color={getStatusColor(testRun.status)}>
+                      {capitalize(testRun.status)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex' }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ mr: 1 }}>
+                      Created:
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatDateTime(testRun.createdAt)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex' }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ mr: 1 }}>
+                      Last Updated:
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatDateTime(testRun.updatedAt)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex' }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ mr: 1 }}>
+                      Created By:
+                    </Typography>
+                    <Typography variant="body1">
+                      {testRun.createdBy.displayName}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex' }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ mr: 1 }}>
+                      Test:
+                    </Typography>
+                    <Typography variant="body1">
+                      {testRun.version.title}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex' }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ mr: 1 }}>
+                      Test Version:
+                    </Typography>
+                    <Typography variant="body1">
+                      {testRun.version.number}
+                      {testRun.version.isDefault && (<b>{"(Current Default)"}</b>)}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body1" color="text.secondary">
+                      Test Description:
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
+                      {testRun.version.description}
                     </Typography>
                   </Box>
                 </Box>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+            <Card sx={{ mt: 2 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Agent Steps
+                </Typography>
+                {testRun.status === "pending" || testRun.status === "running" ? (
+                  <Typography variant="body1" color="text.secondary">
+                    Test results will be available after the test run completes.
+                  </Typography>
+                ) : (
+                  testRunSummary && testRunSummary.model_thoughts.map((thought, idx) =>
+                    <Box key={`thought-${idx}`} sx={{ mt: 2, display: 'flex' }}>
+                      <Box sx={{ fontFamily: "monospace", fontWeight: 'bold', mr: 1, borderRadius: 1, height: 40, width: 40, border: '1px solid gray', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>{idx + 1}</Box>
+                      <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
+                        {thought.memory}
+                      </Typography>
+                    </Box>
+                  )
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+          {/* Screenshots Section */}
+          <Grid size={{ md: 6, xs: 12 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Final Result
+                </Typography>
+                {testRun.status === "pending" || testRun.status === "running" ? (
+                  <Typography variant="body1" color="text.secondary">
+                    Test results will be available after the test run completes.
+                  </Typography>
+                ) : (
+                  testRunSummary &&
+                  <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
+                    {testRunSummary.final_result}
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+            <Card sx={{ mt: 2 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Screenshots
+                </Typography>
+                {testRun.status === "pending" || testRun.status === "running" ? (
+                  <Typography variant="body1" color="text.secondary">
+                    Screenshots will be available after the test run completes.
+                  </Typography>
+                ) : (
+                  <ScreenshotsGrid 
+                    screenshots={testRunSummary?.screenshots?.filter((value, idx) => idx > 0) || []}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
-    </Grid>
+      </Box>
+    </Box>
   );
 }

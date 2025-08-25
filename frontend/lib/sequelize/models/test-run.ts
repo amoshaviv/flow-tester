@@ -124,7 +124,7 @@ export default function defineTestRunModel(
       include: [
         {
           association: "version",
-          attributes: ["id", "title", "description", "number", "slug"],
+          attributes: ["title", "description", "number", "slug", "isDefault"],
           include: [
             {
               association: "test",
@@ -136,7 +136,7 @@ export default function defineTestRunModel(
         },
         {
           association: "createdBy",
-          attributes: ["id", "email", "displayName"],
+          attributes: ["email", "displayName", "profileImageURL"],
         },
       ],
     });
