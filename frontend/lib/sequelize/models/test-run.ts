@@ -23,6 +23,8 @@ interface ITestRunInstance extends Model {
   slug: string;
   status: TestRunStatus;
   resultsURL: string;
+  modelSlug?: string;
+  modelProvider?: string;
   version: ITestVersionInstance;
   createdBy: IUserInstance;
   createdAt: Date;
@@ -41,7 +43,9 @@ export interface ITestRunModel extends ModelStatic<ITestRunInstance> {
   associate(models: IModels): void;
   createWithUserAndVersion(
     user: IUserInstance,
-    version: ITestVersionInstance
+    version: ITestVersionInstance,
+    modelSlug: string,
+    modelProvider: string
   ): Promise<ITestRunInstance>;
   findAllByProject(project: IProjectInstance): Promise<any[]>;
   findBySlug(
@@ -75,6 +79,20 @@ export default function defineTestRunModel(
         type: DataTypes.STRING,
         field: "results_url",
       },
+      modelSlug: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: {
+          notEmpty: true,
+        },
+      },
+      modelProvider: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: {
+          notEmpty: true,
+        },
+      },
     },
     {
       tableName: "tests_runs",
@@ -103,10 +121,17 @@ export default function defineTestRunModel(
 
   TestRun.createWithUserAndVersion = async function createWithUserAndVersion(
     user: IUserInstance,
-    version: ITestVersionInstance
+    version: ITestVersionInstance,
+    modelSlug: string,
+    modelProvider: string
   ) {
     const slug = ulid();
-    const newTestRun = this.build({ slug, status: TestRunStatus.Pending });
+    const newTestRun = this.build({
+      slug,
+      status: TestRunStatus.Pending,
+      modelSlug,
+      modelProvider,
+    });
     newTestRun.setCreatedBy(user, { save: false });
     newTestRun.setVersion(version, { save: false });
     await newTestRun.save();
@@ -171,6 +196,8 @@ export default function defineTestRunModel(
 
     return testRuns.map((testRun) => ({
       slug: testRun.slug,
+      modelSlug: testRun.modelSlug,
+      modelProvider: testRun.modelProvider,
       status: testRun.status,
       resultsURL: testRun.resultsURL,
       createdAt: testRun.createdAt,

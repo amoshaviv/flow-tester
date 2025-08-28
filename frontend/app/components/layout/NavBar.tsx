@@ -14,7 +14,7 @@ import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
 
 import BookmarksIcon from "@mui/icons-material/Bookmarks";
-import { Avatar, Menu, MenuItem, Typography } from "@mui/material";
+import { Avatar, Divider, Menu, MenuItem, Typography } from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
 import { IOrganizationInstance } from "@/lib/sequelize/models/organization";
 
@@ -22,6 +22,7 @@ export default function NavBar({
   organization,
 }: {
   organization?: IOrganizationInstance;
+  userOrganization?: IOrganizationInstance[];
 }) {
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated";
@@ -121,9 +122,9 @@ export default function NavBar({
                   <ListItemButton
                     onClick={handleCloseOrganizationMenu}
                     component={Link}
-                    href={"/organizations"}
+                    href={`/${organization.slug}/users`}
                   >
-                    <ListItemText primary="Change Organization" />
+                    <ListItemText primary="Manage Organization Users" />
                   </ListItemButton>
                 </ListItem>
               </Menu>

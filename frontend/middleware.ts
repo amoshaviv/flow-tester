@@ -19,7 +19,7 @@ export async function middleware(request: NextRequest) {
       const lastOrganization = cookieStore.get("lastOrganization");
       const lastProject = cookieStore.get("lastProject");
 
-      return NextResponse.redirect(new URL(`/${lastOrganization?.value}/${lastProject?.value}`, request.url));
+      return NextResponse.redirect(new URL(`/${lastOrganization?.value}/projects/${lastProject?.value}`, request.url));
     }
   } else {
     if (url === DASHBOARD_ROUTE) {

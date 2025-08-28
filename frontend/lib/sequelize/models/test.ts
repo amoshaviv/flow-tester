@@ -10,6 +10,7 @@ import { IModels } from ".";
 import { IUserInstance } from "./user";
 import { IProjectInstance } from "./project";
 import { ITestVersionInstance } from "./test-version";
+import { TestRunStatus } from "./test-run";
 
 export interface ITestInstance extends Model {
   id: number;
@@ -99,6 +100,12 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
         {
           association: "versions",
           attributes: ["isDefault", "slug", "number", "title", "description"],
+          include: [
+            {
+              association: "runs",
+              attributes: ["slug", "status", "modelSlug", "modelProvider"],
+            },
+          ],
         },
       ],
     });
@@ -109,10 +116,31 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
         const defaultTestVersion = test.versions.find(
           (version) => version.isDefault
         );
+
+        let totalRuns = 0; 
+        let pendingRuns = 0;
+        let successfulRuns = 0;
+        let failedRuns = 0;
+        test.versions.forEach(version => {
+          version.runs.forEach(testRun => {
+            totalRuns++;
+            if (testRun.status === TestRunStatus.Pending) pendingRuns++;
+            if (testRun.status === TestRunStatus.Succeeded) successfulRuns++;
+            if (testRun.status === TestRunStatus.Failed) failedRuns++;
+          })
+        })
+
         return {
           slug: test.slug,
           title: defaultTestVersion?.title,
           description: defaultTestVersion?.description,
+          versions: test.versions.map((currentVersion) => ({
+            slug: currentVersion.slug,
+            title: currentVersion.title,
+            description: currentVersion.description,
+            number: currentVersion.number,
+            isDefault: currentVersion.isDefault,
+          })),
           defaultVersion: {
             slug: defaultTestVersion?.slug,
             title: defaultTestVersion?.title,
@@ -120,7 +148,10 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
             number: defaultTestVersion?.number,
           },
           totalVersions: test.versions.length,
-          totalRuns: 0,
+          totalRuns,
+          pendingRuns,
+          successfulRuns,
+          failedRuns,
         };
       });
   };

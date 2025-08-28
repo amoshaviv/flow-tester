@@ -80,6 +80,9 @@ def map_screenshots_to_paths(slug, screenshots):
 def save_result_data(slug, result):
     screenshots = map_screenshots_to_paths(slug, result.screenshots())
     model_actions = result.model_actions()
+    model_outputs = result.model_outputs()
+    is_successful = result.is_successful()
+    total_duration_seconds = result.total_duration_seconds()
     actions_results = result.action_results()
     model_thoughts = result.model_thoughts()
     model_actions_filtered = result.model_actions_filtered()
@@ -89,9 +92,13 @@ def save_result_data(slug, result):
     is_done = result.is_done()
     has_errors = result.has_errors()
     errors = result.errors()
+    usage = result.usage
 
     run_data = {
+        "usage": usage,
         "is_done": is_done,
+        "is_successful": is_successful,
+        "total_duration_seconds": total_duration_seconds,
         "has_errors": has_errors,
         "model_actions": model_actions,
         "screenshots": screenshots,
@@ -101,7 +108,8 @@ def save_result_data(slug, result):
         "action_names": action_names,
         "final_result": final_result,
         "extracted_content": extracted_content,
-        "errors": errors
+        "errors": errors,
+        "model_outputs": model_outputs
     }
     run_json = json.dumps(run_data, cls=SafeJSONEncoder, indent=2)
     actions_path = f"test-runs/{slug}/run.json"
@@ -120,7 +128,6 @@ def process_message(body):
     """Process a task and update test run status."""
     print(f"Processing message: {body}")
     message = json.loads(body)
-    task = message['task']
     slug = message['testRunSlug']
     
     # Update test run status to 'running' when processing starts
@@ -131,7 +138,7 @@ def process_message(body):
         print(f"Failed to update test run {slug} status to 'running'")
     
     try:
-        result = asyncio.run(processTask(task))
+        result = asyncio.run(processTask(message))
         save_result(slug, result)
         is_done = result.is_done()
         model_actions = result.model_actions()
