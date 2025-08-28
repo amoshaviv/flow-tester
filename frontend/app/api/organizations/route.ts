@@ -24,11 +24,6 @@ export const PUT = async (request: NextRequest) => {
       user,
       organization
     );
-    const project1 = await Project.createWithOrganization(
-      "Default Project",
-      user,
-      organization
-    );
 
     return NextResponse.json({
       name: organization.name,

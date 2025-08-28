@@ -42,27 +42,74 @@ class SafeJSONEncoder(json.JSONEncoder):
         try:
             return super().default(obj)
         except TypeError:
-            return str(obj) 
+            # If the object has a __dict__, convert it to a dictionary
+            if hasattr(obj, '__dict__'):
+                return obj.__dict__
+            # If the object has attributes like 'thinking', 'evaluation_previous_goal', etc.
+            # try to extract them as a dictionary
+            elif hasattr(obj, 'thinking'):
+                return {
+                    'thinking': getattr(obj, 'thinking', ''),
+                    'evaluation_previous_goal': getattr(obj, 'evaluation_previous_goal', ''),
+                    'memory': getattr(obj, 'memory', ''),
+                    'next_goal': getattr(obj, 'next_goal', ''),
+                }
+            elif hasattr(obj, 'is_done'):
+                return {
+                    'is_done': getattr(obj, 'is_done', None),
+                    'success': getattr(obj, 'success', None),
+                    'error': getattr(obj, 'error', None),
+                    'attachments': getattr(obj, 'attachments', None),
+                    'long_term_memory': getattr(obj, 'long_term_memory', ''),
+                    'extracted_content': getattr(obj, 'extracted_content', ''),
+                    'include_extracted_content_only_once': getattr(obj, 'include_extracted_content_only_once', None),
+                    'include_in_memory': getattr(obj, 'include_in_memory', None),
+                }
+            # For any other non-serializable object, convert to string as fallback
+            else:
+                return str(obj) 
+
+def map_screenshots_to_paths(slug, screenshots):
+    mapped = []
+    for idx, screenshot in enumerate(screenshots, start=1):
+        path = f"test-runs/{slug}/screenshots/{idx}.png"
+        mapped.append({"id": idx, "path": path})
+    return mapped
+
 
 def save_result_data(slug, result):
-    model_actions = result.model_actions()     # All actions with their parameters
+    screenshots = map_screenshots_to_paths(slug, result.screenshots())
+    model_actions = result.model_actions()
+    model_outputs = result.model_outputs()
+    is_successful = result.is_successful()
+    total_duration_seconds = result.total_duration_seconds()
     actions_results = result.action_results()
     model_thoughts = result.model_thoughts()
     model_actions_filtered = result.model_actions_filtered()
     action_names = result.action_names()
     final_result = result.final_result()
     extracted_content = result.extracted_content()
+    is_done = result.is_done()
+    has_errors = result.has_errors()
     errors = result.errors()
+    usage = result.usage
 
     run_data = {
+        "usage": usage,
+        "is_done": is_done,
+        "is_successful": is_successful,
+        "total_duration_seconds": total_duration_seconds,
+        "has_errors": has_errors,
         "model_actions": model_actions,
+        "screenshots": screenshots,
         "actions_results": actions_results,
         "model_actions_filtered": model_actions_filtered,
         "model_thoughts": model_thoughts,
         "action_names": action_names,
         "final_result": final_result,
         "extracted_content": extracted_content,
-        "errors": errors
+        "errors": errors,
+        "model_outputs": model_outputs
     }
     run_json = json.dumps(run_data, cls=SafeJSONEncoder, indent=2)
     actions_path = f"test-runs/{slug}/run.json"
@@ -81,7 +128,6 @@ def process_message(body):
     """Process a task and update test run status."""
     print(f"Processing message: {body}")
     message = json.loads(body)
-    task = message['task']
     slug = message['testRunSlug']
     
     # Update test run status to 'running' when processing starts
@@ -92,16 +138,34 @@ def process_message(body):
         print(f"Failed to update test run {slug} status to 'running'")
     
     try:
-        result = asyncio.run(processTask(task))
+        result = asyncio.run(processTask(message))
         save_result(slug, result)
-        
-        # Update status to 'succeeded' if task completed successfully
-        print(f"Task completed successfully, updating test run {slug} status to 'succeeded'")
-        if update_test_run_to_succeeded(slug):
-            print(f"Successfully updated test run {slug} status to 'succeeded'")
+        is_done = result.is_done()
+        model_actions = result.model_actions()
+
+        mark_failed = False
+        if is_done is False:
+            mark_failed = True
+        elif model_actions and isinstance(model_actions, list):
+            last_action = model_actions[-1]
+            if isinstance(last_action, dict):
+                done_prop = last_action.get("done")
+                if isinstance(done_prop, dict) and done_prop.get("success") is False:
+                    mark_failed = True
+
+        if mark_failed:
+            print(f"Task failed, updating test run {slug} status to 'failed'")
+            if update_test_run_to_failed(slug):
+                print(f"Successfully updated test run {slug} status to 'failed'")
+            else:
+                print(f"Failed to update test run {slug} status to 'failed'")
         else:
-            print(f"Failed to update test run {slug} status to 'succeeded'")
-            
+            print(f"Task completed successfully, updating test run {slug} status to 'succeeded'")
+            if update_test_run_to_succeeded(slug):
+                print(f"Successfully updated test run {slug} status to 'succeeded'")
+            else:
+                print(f"Failed to update test run {slug} status to 'succeeded'")
+
         print("Task complete.")
     except Exception as e:
         # Update status to 'failed' if task failed

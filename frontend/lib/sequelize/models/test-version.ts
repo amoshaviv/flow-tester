@@ -9,6 +9,7 @@ import { ulid } from "ulid";
 import { IModels } from ".";
 import { IUserInstance } from "./user";
 import { ITestInstance } from "./test";
+import { ITestRunInstance } from "./test-run";
 
 export interface ITestVersionInstance extends Model {
   id: number;
@@ -18,6 +19,7 @@ export interface ITestVersionInstance extends Model {
   number: number;
   isDefault: boolean;
   test: ITestInstance;
+  runs: ITestRunInstance[];
   setCreatedBy(
     user: IUserInstance,
     options: BelongsToSetAssociationMixinOptions

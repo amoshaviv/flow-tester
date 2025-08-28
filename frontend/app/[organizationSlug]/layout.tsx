@@ -21,14 +21,16 @@ export default async function OrganizationLayout(props: {
   const { organizationSlug } = await params;
 
   const dbModels = await getDBModels();
-  const { Organization } = dbModels;
+  const { Organization, User } = dbModels;
   if (organizationSlug && email) {
+    const user = await User.findByEmail(email);
+
     const organization = await Organization.findBySlugAndUserEmail(
       organizationSlug,
       email
     );
 
-    if (organization) {
+    if (organization && user) {
       return [
         <NavBar key="nav-bar" organization={organization.toJSON()} />,
         children,

@@ -36,7 +36,7 @@ export default async function Home() {
         }}
       >
         <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
-          Project Settings
+          Organization Settings
         </Typography>
       </Box>
     </Container>

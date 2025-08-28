@@ -22,7 +22,7 @@ export default async function Home() {
 
   const organizations = await user.getOrganizations();
   
-  if (!organizations || organizations.length === 0) return redirect('/organizations/create', RedirectType.push);
+  if (!organizations || organizations.length === 0) return redirect('/organizations/new', RedirectType.push);
   
   return (
     <Container maxWidth="lg">
