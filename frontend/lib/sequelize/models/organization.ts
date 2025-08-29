@@ -28,6 +28,7 @@ export interface IOrganizationInstance extends Model {
     user: IUserInstance,
     options: BelongsToManyAddAssociationMixinOptions
   ): Promise<void>;
+  getProjects(): Promise<IProjectInstance[]>;
 }
 
 export interface IOrganizationModel extends ModelStatic<IOrganizationInstance> {
