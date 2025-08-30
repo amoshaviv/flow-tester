@@ -223,13 +223,15 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
       slug: test.slug,
       title: defaultTestVersion?.title,
       description: defaultTestVersion?.description,
-      versions: test.versions.map((currentVersion) => ({
-        slug: currentVersion.slug,
-        title: currentVersion.title,
-        description: currentVersion.description,
-        number: currentVersion.number,
-        isDefault: currentVersion.isDefault,
-      })),
+      versions: test.versions
+        .sort((a, b) => a.number - b.number)
+        .map((currentVersion) => ({
+          slug: currentVersion.slug,
+          title: currentVersion.title,
+          description: currentVersion.description,
+          number: currentVersion.number,
+          isDefault: currentVersion.isDefault,
+        })),
       defaultVersion: {
         slug: defaultTestVersion?.slug,
         title: defaultTestVersion?.title,

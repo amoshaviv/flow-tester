@@ -188,7 +188,7 @@ export default function EditTestModal({
               key="model-title"
               sx={{ display: "flex", flexGrow: 1, alignItems: "center" }}
             >
-              <Typography variant="button">Edit test</Typography>
+              <Typography variant="button">Create new version</Typography>
             </Box>
             <Box sx={{ mr: 1 }}>
               <IconButton

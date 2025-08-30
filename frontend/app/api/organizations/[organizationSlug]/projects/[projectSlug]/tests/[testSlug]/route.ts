@@ -5,6 +5,56 @@ import { getToken } from "next-auth/jwt";
 const notAuthorized = () =>
   NextResponse.json({ message: "Not Authorized" }, { status: 401 });
 
+export const GET = async (
+  request: NextRequest,
+  context: {
+    params: Promise<{
+      organizationSlug: string;
+      projectSlug: string;
+      testSlug: string;
+    }>;
+  }
+) => {
+  const params = await context.params;
+  const { organizationSlug, projectSlug, testSlug } = params;
+
+  const dbModels = await getDBModels();
+  const token = await getToken({ req: request });
+  const email = token?.email;
+  const { User, Organization, Project, Test } = dbModels;
+
+  if (!email) return notAuthorized();
+  const user = await User.findByEmail(email);
+  if (!user) return notAuthorized();
+
+  try {
+    const organization = await Organization.findBySlugAndUserEmail(
+      organizationSlug,
+      email
+    );
+    if (!organization) return notAuthorized();
+
+    const project = await Project.findBySlugAndOrganizationSlug(
+      projectSlug,
+      organizationSlug
+    );
+    if (!project) return notAuthorized();
+
+    const test = await Test.findBySlugAndProject(testSlug, project);
+    if (!test) {
+      return NextResponse.json({ message: "Test not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(test);
+  } catch (err: any) {
+    console.log(err);
+    return NextResponse.json(
+      { message: "Failed to fetch test data" },
+      { status: 500 }
+    );
+  }
+};
+
 export const PATCH = async (
   request: NextRequest,
   context: {

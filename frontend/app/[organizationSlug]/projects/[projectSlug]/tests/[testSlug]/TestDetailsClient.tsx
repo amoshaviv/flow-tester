@@ -13,8 +13,20 @@ import {
   Divider,
   Chip,
   Grid,
+  IconButton,
+  Tooltip,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
 } from "@mui/material";
+import { Edit as EditIcon, PlayArrow as PlayArrowIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import TestRunsTable from "../../runs/TestRunsTable";
+import EditTestModal from "../EditTestModal";
+import RunTestModal from "../RunTestModal";
+import { useRouter } from "next/navigation";
 
 interface TestVersion {
   slug: string;
@@ -46,18 +58,173 @@ interface TestDetailsClientProps {
 }
 
 export default function TestDetailsClient({
-  testData,
+  testData: initialTestData,
   organizationSlug,
   projectSlug,
 }: TestDetailsClientProps) {
+  const [testData, setTestData] = React.useState<TestData>(initialTestData);
   const [selectedVersionSlug, setSelectedVersionSlug] = React.useState<string>(
-    testData.defaultVersion?.slug || ""
+    initialTestData.defaultVersion?.slug || ""
   );
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const [runModalOpen, setRunModalOpen] = React.useState(false);
+  const [selectedTestToRun, setSelectedTestToRun] = React.useState<string>("");
+  const [selectedVersionToRun, setSelectedVersionToRun] = React.useState<string>("");
+  const [selectedModelToRun, setSelectedModelToRun] = React.useState<string>("gpt-5-mini");
+  const [isRunning, setIsRunning] = React.useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const router = useRouter();
 
   const selectedVersion = React.useMemo(() => {
     if (!selectedVersionSlug) return null;
     return testData.versions.find(v => v.slug === selectedVersionSlug) || null;
   }, [testData.versions, selectedVersionSlug]);
+
+  const fetchTestData = async () => {
+    try {
+      const response = await fetch(
+        `/api/organizations/${organizationSlug}/projects/${projectSlug}/tests/${testData.slug}`
+      );
+      if (response.ok) {
+        const updatedTest = await response.json();
+        setTestData(updatedTest);
+        setSelectedVersionSlug(updatedTest.defaultVersion?.slug || "");
+      }
+    } catch (error) {
+      console.error("Error fetching test data:", error);
+    }
+  };
+
+  const handleEditTest = () => {
+    setEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+  };
+
+  const handleTestUpdated = () => {
+    setEditModalOpen(false);
+    fetchTestData();
+  };
+
+  const handleRunTest = () => {
+    setSelectedTestToRun(testData.slug);
+    // Set the currently selected version as initially selected for running
+    if (selectedVersionSlug) {
+      setSelectedVersionToRun(selectedVersionSlug);
+    } else {
+      // Fallback to default version
+      const defaultVersion = testData.versions.find((v) => v.isDefault);
+      if (defaultVersion) {
+        setSelectedVersionToRun(defaultVersion.slug);
+      } else if (testData.versions.length > 0) {
+        setSelectedVersionToRun(testData.versions[0].slug);
+      }
+    }
+    setRunModalOpen(true);
+  };
+
+  const handleTestChange = (testSlug: string) => {
+    setSelectedTestToRun(testSlug);
+    // Since we only have one test, reset version to default
+    const defaultVersion = testData.versions.find((v) => v.isDefault);
+    if (defaultVersion) {
+      setSelectedVersionToRun(defaultVersion.slug);
+    } else if (testData.versions.length > 0) {
+      setSelectedVersionToRun(testData.versions[0].slug);
+    } else {
+      setSelectedVersionToRun("");
+    }
+  };
+
+  const handleVersionChange = (versionSlug: string) => {
+    setSelectedVersionToRun(versionSlug);
+  };
+
+  const handleModelChange = (modelSlug: string) => {
+    setSelectedModelToRun(modelSlug);
+  };
+
+  const handleConfirmRun = async () => {
+    if (!selectedTestToRun || !selectedVersionToRun || !selectedModelToRun || isRunning) return;
+
+    setIsRunning(true);
+    try {
+      const response = await fetch(
+        `/api/organizations/${organizationSlug}/projects/${projectSlug}/tests/${selectedTestToRun}/runs`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            versionSlug: selectedVersionToRun,
+            modelSlug: selectedModelToRun
+          }),
+        }
+      );
+
+      if (response.ok) {
+        setRunModalOpen(false);
+        setSelectedTestToRun("");
+        setSelectedVersionToRun("");
+        setSelectedModelToRun("gpt-5-mini");
+        // Refresh test data to get the new test run
+        fetchTestData();
+      } else {
+        console.error("Failed to run test");
+      }
+    } catch (error) {
+      console.error("Error running test:", error);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleCancelRun = () => {
+    if (isRunning) return;
+    setRunModalOpen(false);
+    setSelectedTestToRun("");
+    setSelectedVersionToRun("");
+    setSelectedModelToRun("gpt-5-mini");
+  };
+
+  const handleDeleteTest = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (isDeleting) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(
+        `/api/organizations/${organizationSlug}/projects/${projectSlug}/tests/${testData.slug}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (response.ok) {
+        // Navigate back to tests page after successful deletion
+        router.push(`/${organizationSlug}/projects/${projectSlug}/tests`);
+      } else {
+        console.error("Failed to delete test");
+        setIsDeleting(false);
+      }
+    } catch (error) {
+      console.error("Error deleting test:", error);
+      setIsDeleting(false);
+    }
+    // Note: We don't reset isDeleting to false on success because we're navigating away
+  };
+
+  const handleCancelDelete = () => {
+    if (isDeleting) return;
+    setDeleteDialogOpen(false);
+  };
 
   return (
     <Box>
@@ -67,9 +234,11 @@ export default function TestDetailsClient({
             <Grid size={{ sm: 9 }}>
               {selectedVersion && (
                 <Box>
-                  <Typography variant="h6">
-                    {selectedVersion.title}
-                  </Typography>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                    <Typography variant="h6">
+                      {selectedVersion.title}
+                    </Typography>
+                  </Box>
                   <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }} color="textSecondary">
                     {selectedVersion.description}
                   </Typography>
@@ -100,6 +269,15 @@ export default function TestDetailsClient({
                     ))}
                   </Select>
                 </FormControl>
+                <Button sx={{mt:1}} size="large" variant="contained" onClick={handleEditTest} fullWidth>
+                  <EditIcon /> Add New Version
+                </Button>
+                <Button sx={{mt:1}} size="large" variant="contained" onClick={handleRunTest} fullWidth color="success">
+                  <PlayArrowIcon /> Run Test
+                </Button>
+                <Button sx={{mt:1}} size="large" variant="contained" onClick={handleDeleteTest} fullWidth color="error">
+                  <DeleteIcon /> Delete Test
+                </Button>
               </Box>
             </Grid>
             <Grid size={{ sm: 12 }}>
@@ -156,6 +334,60 @@ export default function TestDetailsClient({
         organizationSlug={organizationSlug}
         projectSlug={projectSlug}
       />
+
+      <EditTestModal
+        isOpen={editModalOpen}
+        onClose={handleCloseEditModal}
+        test={testData}
+        onTestUpdated={handleTestUpdated}
+      />
+      
+      <RunTestModal
+        isOpen={runModalOpen}
+        onClose={handleCancelRun}
+        tests={[testData]}
+        selectedTest={selectedTestToRun}
+        onTestChange={handleTestChange}
+        selectedVersion={selectedVersionToRun}
+        onVersionChange={handleVersionChange}
+        selectedModel={selectedModelToRun}
+        onModelChange={handleModelChange}
+        onRunTest={handleConfirmRun}
+        isRunning={isRunning}
+      />
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCancelDelete}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">Delete Test</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            Are you sure you want to delete the test "{testData.title}"? This
+            action cannot be undone and will permanently remove the test and all
+            its versions and test runs.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCancelDelete}
+            color="primary"
+            disabled={isDeleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            color="error"
+            variant="contained"
+            disabled={isDeleting}
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
