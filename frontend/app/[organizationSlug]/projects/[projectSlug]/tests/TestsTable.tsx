@@ -32,6 +32,7 @@ import AddNewTestModal from "./NewTestModal";
 import EditTestModal from "./EditTestModal";
 import RunTestModal from "./RunTestModal";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 function createData(title: string, description: string, versions: number): any {
   return {
@@ -210,6 +211,7 @@ export default function EnhancedTable({
   const [selectedModelToRun, setSelectedModelToRun] = React.useState<string>("gpt-5-mini");
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isRunning, setIsRunning] = React.useState(false);
+  const router = useRouter();
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
@@ -218,6 +220,10 @@ export default function EnhancedTable({
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
+  };
+
+  const handleRowClick = (test: any) => {
+    router.push(`/${organizationSlug}/projects/${projectSlug}/tests/${test.slug}`);
   };
 
   const handleEditTest = (test: any) => {
@@ -375,7 +381,13 @@ export default function EnhancedTable({
             <TableBody>
               {sortedTests?.map((test, index) => {
                 return (
-                  <TableRow hover tabIndex={-1} key={test.slug}>
+                  <TableRow 
+                    hover 
+                    tabIndex={-1} 
+                    key={test.slug}
+                    onClick={() => handleRowClick(test)}
+                    sx={{ cursor: 'pointer' }}
+                  >
                     <TableCell sx={buttonCellStyle}>
                       <Tooltip title="Run test">
                         <IconButton
@@ -391,20 +403,7 @@ export default function EnhancedTable({
                         </IconButton>
                       </Tooltip>
                     </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/${organizationSlug}/projects/${projectSlug}/tests/${test.slug}`}
-                        style={{
-                          textDecoration: "none",
-                          color: "inherit",
-                          "&:hover": {
-                            textDecoration: "underline"
-                          }
-                        }}
-                      >
-                        {test.title}
-                      </Link>
-                    </TableCell>
+                    <TableCell>{test.title}</TableCell>
                     <TableCell align="center">{test.totalVersions}</TableCell>
                     <TableCell align="center">{test.totalRuns}</TableCell>
                     <TableCell align="center">{test.pendingRuns}</TableCell>
