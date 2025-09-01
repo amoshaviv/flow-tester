@@ -369,7 +369,7 @@ export default function EnhancedTable({
 
   return (
     <Box sx={{ width: "100%" }}>
-      <Paper sx={{ width: "100%", mb: 2 }}>
+      <Paper sx={{ width: "100%", mb: 2, borderRadius: 0}}>
         <EnhancedTableToolbar onTestsChange={onTestsChange} />
         <TableContainer>
           <Table sx={{ minWidth: 750 }} aria-labelledby="tableTitle">

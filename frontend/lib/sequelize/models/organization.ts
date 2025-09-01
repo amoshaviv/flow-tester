@@ -43,6 +43,13 @@ export interface IOrganizationModel extends ModelStatic<IOrganizationInstance> {
     domain: string,
     user: IUserInstance
   ): Promise<IOrganizationInstance>;
+  updateOrganizationDetails(
+    organization: IOrganizationInstance,
+    name: string,
+    slug: string,
+    domain: string,
+    profileImageURL?: string
+  ): Promise<{ success: boolean; organization?: IOrganizationInstance; suggestedSlug?: string; error?: string }>;
 }
 
 export default function defineOrganizationModel(
@@ -63,6 +70,10 @@ export default function defineOrganizationModel(
       unique: true,
       validate: {
         notEmpty: true,
+        is: {
+          args: /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/,
+          msg: "Domain must be a valid domain format (e.g., example.com)"
+        }
       },
     },
     name: {
@@ -177,6 +188,58 @@ export default function defineOrganizationModel(
     });
 
     return newOrganization;
+  };
+
+  Organization.updateOrganizationDetails = async function updateOrganizationDetails(
+    organization: IOrganizationInstance,
+    name: string,
+    slug: string,
+    domain: string,
+    profileImageURL?: string
+  ) {
+    // If slug is different from current, check if it's unique
+    if (slug !== organization.slug) {
+      const existingOrganization = await this.findOne({
+        where: {
+          slug: slug,
+        },
+      });
+
+      if (existingOrganization) {
+        const suggestedSlug = await this.findUniqueSlug(slug);
+        return { 
+          success: false, 
+          error: `Slug "${slug}" is already taken`,
+          suggestedSlug 
+        };
+      }
+    }
+
+    // If domain is different from current, check if it's unique
+    if (domain !== organization.domain) {
+      const existingOrganizationWithDomain = await this.findOne({
+        where: {
+          domain: domain,
+        },
+      });
+
+      if (existingOrganizationWithDomain) {
+        return { 
+          success: false, 
+          error: `Domain "${domain}" is already taken`
+        };
+      }
+    }
+
+    // Prepare update data
+    const updateData: any = { name, slug, domain };
+    if (profileImageURL !== undefined) {
+      updateData.profileImageURL = profileImageURL;
+    }
+
+    // Update the organization
+    await organization.update(updateData);
+    return { success: true, organization };
   };
 
   return Organization;

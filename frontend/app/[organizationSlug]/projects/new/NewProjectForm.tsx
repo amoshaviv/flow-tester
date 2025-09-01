@@ -67,33 +67,6 @@ export default function NewProjectForm({ organizationSlug }: NewProjectFormProps
       setShowNameError(true);
     }
   };
-
-  const handleDomainChange = (
-    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
-  ) => {
-    setCreateError("");
-    setDomainError(false);
-    setShowDomainError(false);
-
-    const newDomain = event.target.value;
-    setDomain(newDomain);
-    if (!validateDomain(newDomain)) {
-      setDomainError(true);
-    }
-  };
-
-  const handleDomainBlur = (
-    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
-  ) => {
-    setCreateError("");
-    setShowDomainError(false);
-
-    const newDomain = event.target.value;
-    if (!validateDomain(newDomain)) {
-      setShowDomainError(true);
-    }
-  };
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     try {
       event.preventDefault();

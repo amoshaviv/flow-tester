@@ -23,6 +23,7 @@ export interface IProjectInstance extends Model {
     user: IOrganizationInstance,
     options: BelongsToSetAssociationMixinOptions
   ): void;
+  getOrganization(): Promise<IOrganizationInstance>;
 }
 
 export interface IProjectModel extends ModelStatic<IProjectInstance> {
@@ -40,20 +41,13 @@ export interface IProjectModel extends ModelStatic<IProjectInstance> {
     projectSlug: string,
     organizationSlug: string
   ): Promise<IProjectInstance | null>;
+  updateProjectDetails(
+    project: IProjectInstance,
+    name: string,
+    slug: string
+  ): Promise<{ success: boolean; project?: IProjectInstance; suggestedSlug?: string; error?: string }>;
 }
 
-export interface IProjectModel extends ModelStatic<IProjectInstance> {
-  associate(models: IModels): void;
-  findUniqueSlug(
-    slug: string,
-    organization: IOrganizationInstance
-  ): Promise<string>;
-  createWithOrganization(
-    name: string,
-    user: IUserInstance,
-    organization: IOrganizationInstance
-  ): Promise<IProjectInstance>;
-}
 
 export default function defineProjectModel(
   sequelize: Sequelize
@@ -170,6 +164,41 @@ export default function defineProjectModel(
     newProject.setCreatedBy(user, { save: false });
     newProject.setOrganization(organization, { save: false });
     return newProject.save();
+  };
+
+  Project.updateProjectDetails = async function updateProjectDetails(
+    project: IProjectInstance,
+    name: string,
+    slug: string
+  ) {
+    // Get the organization to check slug uniqueness
+    const organization = await project.getOrganization();
+    if (!organization) {
+      return { success: false, error: "Organization not found" };
+    }
+
+    // If slug is different from current, check if it's unique
+    if (slug !== project.slug) {
+      const existingProject = await this.findOne({
+        where: {
+          organization_id: organization.id,
+          slug: slug,
+        },
+      });
+
+      if (existingProject) {
+        const suggestedSlug = await this.findUniqueSlug(slug, organization);
+        return { 
+          success: false, 
+          error: `Slug "${slug}" is already taken`,
+          suggestedSlug 
+        };
+      }
+    }
+
+    // Update the project
+    await project.update({ name, slug });
+    return { success: true, project };
   };
 
   return Project;

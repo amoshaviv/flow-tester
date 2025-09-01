@@ -17,6 +17,7 @@ import BookmarksIcon from "@mui/icons-material/Bookmarks";
 import { Avatar, Divider, Menu, MenuItem, Typography } from "@mui/material";
 import Tooltip from "@mui/material/Tooltip";
 import { IOrganizationInstance } from "@/lib/sequelize/models/organization";
+import { OrganizeImportsMode } from "typescript";
 
 export default function NavBar({
   organization,
@@ -115,7 +116,16 @@ export default function NavBar({
                     component={Link}
                     href={`/${organization.slug}/settings`}
                   >
-                    <ListItemText primary="Edit Organization Settings" />
+                    <ListItemText primary={`Edit ${organization.name} Settings`} />
+                  </ListItemButton>
+                </ListItem>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={handleCloseOrganizationMenu}
+                    component={Link}
+                    href={`/${organization.slug}/projects`}
+                  >
+                    <ListItemText primary={`View ${organization.name} Projects`} />
                   </ListItemButton>
                 </ListItem>
                 <ListItem disablePadding>
@@ -124,7 +134,7 @@ export default function NavBar({
                     component={Link}
                     href={`/${organization.slug}/users`}
                   >
-                    <ListItemText primary="Manage Organization Users" />
+                    <ListItemText primary={`Manage ${organization.name} Users`} />
                   </ListItemButton>
                 </ListItem>
               </Menu>

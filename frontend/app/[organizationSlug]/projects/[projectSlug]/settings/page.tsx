@@ -1,43 +1,60 @@
 import * as React from "react";
-import Container from "@mui/material/Container";
-import Typography from "@mui/material/Typography";
-import Box from "@mui/material/Box";
-import Link from "@mui/material/Link";
-import NextLink from "next/link";
-import { redirect, RedirectType } from 'next/navigation'
-
+import { redirect, RedirectType } from "next/navigation";
 import { getSession } from "@/lib/next-auth";
 import { getDBModels } from "@/lib/sequelize";
+import ProjectSettingsClient from "./ProjectSettingsClient";
 
-export default async function Home() {
+const redirectToSignIn = () =>
+  redirect("/authentication/signin", RedirectType.push);
+const redirectToOrganizations = () =>
+  redirect("/organizations", RedirectType.push);
+
+export default async function ProjectSettingsPage({
+  params,
+}: {
+  params: Promise<{ organizationSlug: string; projectSlug: string }>;
+}) {
   const session = await getSession();
   const email = session?.user?.email;
-  if(!email) return redirect('/authentication/signin', RedirectType.push);
+  if (!email) return redirectToSignIn();
 
+  const { organizationSlug, projectSlug } = await params;
   const dbModels = await getDBModels();
-  const { Organization, User } = dbModels;
-  
-  const user = await User.findByEmail(email);
-  if(!user) return redirect('/authentication/signin', RedirectType.push);
+  const { User, Organization, Project } = dbModels;
 
-  const organizations = await user.getOrganizations();
-  
-  if (!organizations || organizations.length === 0) return redirect('/organizations/create', RedirectType.push);
-  
-  return (
-    <Container maxWidth="lg">
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
+  try {
+    const user = await User.findByEmail(email);
+    if (!user) return redirectToSignIn();
+
+    const organization = await Organization.findBySlugAndUserEmail(
+      organizationSlug,
+      email
+    );
+    if (!organization) return redirectToOrganizations();
+
+    const project = await Project.findBySlugAndOrganizationSlug(
+      projectSlug,
+      organizationSlug
+    );
+    if (!project) return redirectToOrganizations();
+
+    return (
+      <ProjectSettingsClient
+        project={{
+          slug: project.slug,
+          name: project.name,
         }}
-      >
-        <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
-          Project Settings
-        </Typography>
-      </Box>
-    </Container>
-  );
+        organizationSlug={organizationSlug}
+        projectSlug={projectSlug}
+      />
+    );
+  } catch (err) {
+    console.log(err);
+    return (
+      <div>
+        <h1>Error</h1>
+        <p>An error occurred while loading the project settings.</p>
+      </div>
+    );
+  }
 }

@@ -254,7 +254,7 @@ export default function TestDetailsClient({
 
   return (
     <Box>
-      <Card sx={{ mb: 3 }}>
+      <Card sx={{ mb: 3, borderRadius: 0, }}>
         <CardContent>
           <Grid container spacing={2}>
             <Grid size={{ sm: 9 }}>
@@ -324,7 +324,7 @@ export default function TestDetailsClient({
           </Grid>
         </CardContent>
       </Card>
-      <Card sx={{ mb: 3 }}>
+      <Card sx={{ mb: 3, borderRadius: 0, }}>
         <CardContent>
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Box>
