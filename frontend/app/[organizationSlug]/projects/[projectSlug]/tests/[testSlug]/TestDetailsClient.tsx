@@ -74,6 +74,7 @@ export default function TestDetailsClient({
   const [isRunning, setIsRunning] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isSettingDefault, setIsSettingDefault] = React.useState(false);
   const router = useRouter();
 
   const selectedVersion = React.useMemo(() => {
@@ -226,6 +227,31 @@ export default function TestDetailsClient({
     setDeleteDialogOpen(false);
   };
 
+  const handleMakeDefault = async () => {
+    if (!selectedVersion || selectedVersion.isDefault || isSettingDefault) return;
+
+    setIsSettingDefault(true);
+    try {
+      const response = await fetch(
+        `/api/organizations/${organizationSlug}/projects/${projectSlug}/tests/${testData.slug}/versions/${selectedVersion.slug}`,
+        {
+          method: "PATCH",
+        }
+      );
+
+      if (response.ok) {
+        // Refresh test data to get the updated default status
+        fetchTestData();
+      } else {
+        console.error("Failed to set version as default");
+      }
+    } catch (error) {
+      console.error("Error setting version as default:", error);
+    } finally {
+      setIsSettingDefault(false);
+    }
+  };
+
   return (
     <Box>
       <Card sx={{ mb: 3 }}>
@@ -278,6 +304,19 @@ export default function TestDetailsClient({
                 <Button sx={{mt:1}} size="large" variant="contained" onClick={handleDeleteTest} fullWidth color="error">
                   <DeleteIcon /> Delete Test
                 </Button>
+                {selectedVersion && !selectedVersion.isDefault && (
+                  <Button 
+                    sx={{mt:1}} 
+                    size="large" 
+                    variant="contained" 
+                    onClick={handleMakeDefault} 
+                    fullWidth 
+                    color="info"
+                    disabled={isSettingDefault}
+                  >
+                    {isSettingDefault ? "Setting..." : "Make Default Version"}
+                  </Button>
+                )}
               </Box>
             </Grid>
             <Grid size={{ sm: 12 }}>

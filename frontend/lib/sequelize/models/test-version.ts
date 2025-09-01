@@ -40,6 +40,7 @@ export interface ITestVersionModel extends ModelStatic<ITestVersionInstance> {
     isDefault: boolean
   ): Promise<ITestVersionInstance>;
   findNextVersionNumber(test: ITestInstance): Promise<number>;
+  setAsDefault(versionSlug: string, test: ITestInstance): Promise<ITestVersionInstance | null>;
 }
 
 export default function defineTestVersionModel(
@@ -146,6 +147,27 @@ export default function defineTestVersionModel(
     await newTestVersion.save();
 
     return newTestVersion;
+  };
+
+  TestVersion.setAsDefault = async function setAsDefault(
+    versionSlug: string,
+    test: ITestInstance
+  ) {
+    // First, set all versions of this test to not be default
+    await this.update(
+      { isDefault: false },
+      { where: { test_id: test.id } }
+    );
+
+    // Then set the specified version as default
+    const targetVersion = await this.findOne({
+      where: { slug: versionSlug, test_id: test.id }
+    });
+
+    if (!targetVersion) return null;
+
+    await targetVersion.update({ isDefault: true });
+    return targetVersion;
   };
 
   return TestVersion;
