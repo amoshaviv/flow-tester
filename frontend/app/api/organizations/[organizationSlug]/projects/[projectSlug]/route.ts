@@ -77,3 +77,53 @@ export const PATCH = async (
     );
   }
 };
+
+export const DELETE = async (
+  request: NextRequest,
+  context: {
+    params: Promise<{
+      organizationSlug: string;
+      projectSlug: string;
+    }>;
+  }
+) => {
+  const params = await context.params;
+  const { organizationSlug, projectSlug } = params;
+
+  const dbModels = await getDBModels();
+  const token = await getToken({ req: request });
+  const email = token?.email;
+  const { User, Organization, Project } = dbModels;
+
+  if (!email) return notAuthorized();
+  const user = await User.findByEmail(email);
+  if (!user) return notAuthorized();
+
+  try {
+    const organization = await Organization.findBySlugAndUserEmail(
+      organizationSlug,
+      email
+    );
+    if (!organization) return notAuthorized();
+
+    const project = await Project.findBySlugAndOrganizationSlug(
+      projectSlug,
+      organizationSlug
+    );
+    if (!project) {
+      return NextResponse.json({ message: "Project not found" }, { status: 404 });
+    }
+
+    await project.destroy();
+
+    return NextResponse.json({
+      message: "Project deleted successfully",
+    });
+  } catch (err: any) {
+    console.log(err);
+    return NextResponse.json(
+      { message: "Failed to delete project" },
+      { status: 500 }
+    );
+  }
+};

@@ -177,27 +177,19 @@ export default function OrganizationSettingsClient({
 
   return (
     <Box>
-      <Box
-        sx={{
-          width: '100%',
-          pl: { sm: 2 },
-          pr: { xs: 1, sm: 2 },
-          height: 64,
-          display: 'flex',
-          alignItems: 'center',
-        }}
-      >
-        <Grid container width="100%">
-          <Grid size={{ md: 6, xs: 12 }}>
+      <Card>
+        <CardContent sx={{ py: 0 }}>
+          <Box
+            sx={{
+              width: '100%',
+              height: 64,
+              display: 'flex',
+              alignItems: 'center',
+            }}>
             <Typography variant="h6" component="h1">
               {name} Settings
             </Typography>
-          </Grid>
-        </Grid>
-      </Box>
-
-      <Card sx={{ ml: 2, mr: 2 }}>
-        <CardContent>
+          </Box>
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
               <Grid size={{ sm: 12 }}>

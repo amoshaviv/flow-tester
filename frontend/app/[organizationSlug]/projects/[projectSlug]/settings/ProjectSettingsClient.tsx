@@ -10,8 +10,14 @@ import {
   Button,
   Alert,
   Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Divider,
 } from "@mui/material";
-import { Save as SaveIcon } from "@mui/icons-material";
+import { Save as SaveIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import { kebabCase } from "change-case";
 
@@ -37,6 +43,8 @@ export default function ProjectSettingsClient({
   const [error, setError] = React.useState<string>("");
   const [success, setSuccess] = React.useState<string>("");
   const [suggestedSlug, setSuggestedSlug] = React.useState<string>("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   const router = useRouter();
 
   // Auto-generate slug when name changes
@@ -106,97 +114,184 @@ export default function ProjectSettingsClient({
     }
   };
 
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+  };
+
+  const handleDeleteConfirm = async () => {
+    setIsDeleting(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `/api/organizations/${organizationSlug}/projects/${projectSlug}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (response.ok) {
+        router.push(`/${organizationSlug}/projects`);
+      } else {
+        const data = await response.json();
+        setError(data.message || "Failed to delete project");
+        setDeleteDialogOpen(false);
+        setIsDeleting(false);
+      }
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      setError("An error occurred while deleting the project");
+      setDeleteDialogOpen(false);
+      setIsDeleting(false);
+    }
+  };
+
   const hasChanges = name !== initialProject.name || slug !== initialProject.slug;
 
   return (
     <Box>
-      <Box
-        sx={{
-          width: '100%',
-          pl: { sm: 2 },
-          pr: { xs: 1, sm: 2 },
-          height: 64,
-          display: 'flex',
-          alignItems: 'center',
-        }}>
-        <Grid container width="100%">
-          <Grid size={{ md: 6, xs: 12 }}>
+      <Card sx={{ borderRadius: 0 }}>
+        <CardContent sx={{ p: 0 }}>
+          <Box
+            sx={{
+              width: '100%',
+              pl: { sm: 2 },
+              pr: { xs: 1, sm: 2 },
+              height: 64,
+              display: 'flex',
+              alignItems: 'center',
+            }}>
             <Typography variant="h6" component="h1">
               Project Settings
             </Typography>
-          </Grid>
-        </Grid>
-      </Box>
-
-      <Card sx={{ ml: 2, mr: 2 }}>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              <Grid size={{ sm: 12 }}>
-                <TextField
-                  fullWidth
-                  label="Project Name"
-                  value={name}
-                  onChange={handleNameChange}
-                  disabled={isLoading}
-                  helperText="The display name for your project"
-                />
-              </Grid>
-
-              <Grid size={{ sm: 12 }}>
-                <TextField
-                  fullWidth
-                  label="Project Slug"
-                  value={slug}
-                  onChange={handleSlugChange}
-                  disabled={isLoading}
-                  helperText="The URL-friendly identifier for your project (lowercase, letters, numbers, and hyphens only)"
-                />
-              </Grid>
-
-              {error && (
+          </Box>
+          <Box sx={{ px: 2 }}>
+            <form onSubmit={handleSubmit}>
+              <Grid container spacing={2}>
                 <Grid size={{ sm: 12 }}>
-                  <Alert severity="error">
-                    {error}
-                    {suggestedSlug && (
-                      <Box sx={{ mt: 1 }}>
-                        <Typography variant="body2">
-                          Try this instead:{" "}
-                          <Button
-                            variant="text"
-                            size="small"
-                            onClick={handleUseSuggestedSlug}
-                          >
-                            {suggestedSlug}
-                          </Button>
-                        </Typography>
-                      </Box>
-                    )}
-                  </Alert>
+                  <TextField
+                    fullWidth
+                    label="Project Name"
+                    value={name}
+                    onChange={handleNameChange}
+                    disabled={isLoading}
+                    helperText="The display name for your project"
+                  />
                 </Grid>
-              )}
 
-              {success && (
                 <Grid size={{ sm: 12 }}>
-                  <Alert severity="success">{success}</Alert>
+                  <TextField
+                    fullWidth
+                    label="Project Slug"
+                    value={slug}
+                    onChange={handleSlugChange}
+                    disabled={isLoading}
+                    helperText="The URL-friendly identifier for your project (lowercase, letters, numbers, and hyphens only)"
+                  />
                 </Grid>
-              )}
 
-              <Grid size={{ sm: 12 }}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  startIcon={<SaveIcon />}
-                  disabled={isLoading || !hasChanges}
-                  size="large"
-                >
-                  {isLoading ? "Saving..." : "Save Changes"}
-                </Button>
+                {error && (
+                  <Grid size={{ sm: 12 }}>
+                    <Alert severity="error">
+                      {error}
+                      {suggestedSlug && (
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="body2">
+                            Try this instead:{" "}
+                            <Button
+                              variant="text"
+                              size="small"
+                              onClick={handleUseSuggestedSlug}
+                            >
+                              {suggestedSlug}
+                            </Button>
+                          </Typography>
+                        </Box>
+                      )}
+                    </Alert>
+                  </Grid>
+                )}
+
+                {success && (
+                  <Grid size={{ sm: 12 }}>
+                    <Alert severity="success">{success}</Alert>
+                  </Grid>
+                )}
+
+                <Grid>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    startIcon={<SaveIcon />}
+                    disabled={isLoading || !hasChanges}
+                    size="large"
+                  >
+                    {isLoading ? "Saving..." : "Save Changes"}
+                  </Button>
+                </Grid>
+                <Grid>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={handleDeleteClick}
+                    disabled={isLoading || isDeleting}
+                    size="large"
+                  >
+                    Delete Project
+                  </Button>
+                </Grid>
               </Grid>
-            </Grid>
-          </form>
+            </form>
+          </Box>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">
+          Delete Project "{initialProject.name}"?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            This action will permanently delete the project "{initialProject.name}" and all of its associated data including:
+            <br />
+            <br />
+            • All tests and test configurations
+            <br />
+            • All test runs and their results
+            <br />
+            • All screenshots and artifacts
+            <br />
+            • All project settings and history
+            <br />
+            <br />
+            <strong>This action cannot be undone.</strong> Are you sure you want to continue?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} disabled={isDeleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={isDeleting}
+            startIcon={isDeleting ? undefined : <DeleteIcon />}
+          >
+            {isDeleting ? "Deleting..." : "Delete Project"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
