@@ -16,10 +16,21 @@ import {
   DialogContentText,
   DialogActions,
   Divider,
+  CircularProgress,
 } from "@mui/material";
 import { Save as SaveIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import { kebabCase } from "change-case";
+import { ChangeEvent } from "react";
+
+// Validation functions
+const validateName = (name: string): boolean => {
+  return name.trim().length >= 2;
+};
+
+const validateSlug = (slug: string): boolean => {
+  return /^[a-z0-9-]+$/.test(slug) && slug.length >= 2;
+};
 
 interface ProjectData {
   slug: string;
@@ -47,17 +58,71 @@ export default function ProjectSettingsClient({
   const [isDeleting, setIsDeleting] = React.useState(false);
   const router = useRouter();
 
+  // Validation state
+  const [showNameError, setShowNameError] = React.useState(false);
+  const [nameError, setNameError] = React.useState(false);
+  const [showSlugError, setShowSlugError] = React.useState(false);
+  const [slugError, setSlugError] = React.useState(false);
+
   // Auto-generate slug when name changes
-  const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNameChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setError("");
+    setNameError(false);
+    setSlugError(false);
+    setShowNameError(false);
+    setShowSlugError(false);
+
     const newName = event.target.value;
+    const newSlug = kebabCase(newName);
     setName(newName);
-    setSlug(kebabCase(newName));
+    setSlug(newSlug);
+    
+    if (!validateName(newName)) {
+      setNameError(true);
+    }
+
+    if (!validateSlug(newSlug)) {
+      setSlugError(true);
+    }
   };
 
-  const handleSlugChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSlug(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"));
+  const handleNameBlur = (event: ChangeEvent<HTMLInputElement>) => {
     setError("");
+    setShowNameError(false);
+
+    const newName = event.target.value;
+    if (!validateName(newName)) {
+      setShowNameError(true);
+    }
+    
+    const newSlug = kebabCase(newName);
+    if (!validateSlug(newSlug)) {
+      setShowSlugError(true);
+    }
+  };
+
+  const handleSlugChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setError("");
+    setSlugError(false);
+    setShowSlugError(false);
     setSuggestedSlug("");
+
+    const newSlug = event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    setSlug(newSlug);
+    
+    if (!validateSlug(newSlug)) {
+      setSlugError(true);
+    }
+  };
+
+  const handleSlugBlur = (event: ChangeEvent<HTMLInputElement>) => {
+    setError("");
+    setShowSlugError(false);
+
+    const newSlug = event.target.value;
+    if (!validateSlug(newSlug)) {
+      setShowSlugError(true);
+    }
   };
 
   const handleUseSuggestedSlug = () => {
@@ -178,8 +243,14 @@ export default function ProjectSettingsClient({
                     label="Project Name"
                     value={name}
                     onChange={handleNameChange}
+                    onBlur={handleNameBlur}
                     disabled={isLoading}
-                    helperText="The display name for your project"
+                    error={showNameError}
+                    helperText={
+                      showNameError 
+                        ? "Project name must be at least 2 characters long" 
+                        : "The display name for your project"
+                    }
                   />
                 </Grid>
 
@@ -189,8 +260,14 @@ export default function ProjectSettingsClient({
                     label="Project Slug"
                     value={slug}
                     onChange={handleSlugChange}
+                    onBlur={handleSlugBlur}
                     disabled={isLoading}
-                    helperText="The URL-friendly identifier for your project (lowercase, letters, numbers, and hyphens only)"
+                    error={showSlugError}
+                    helperText={
+                      showSlugError 
+                        ? "Slug must be at least 2 characters and contain only lowercase letters, numbers, and hyphens" 
+                        : "The URL-friendly identifier for your project (lowercase, letters, numbers, and hyphens only)"
+                    }
                   />
                 </Grid>
 
@@ -226,8 +303,17 @@ export default function ProjectSettingsClient({
                   <Button
                     type="submit"
                     variant="contained"
-                    startIcon={<SaveIcon />}
-                    disabled={isLoading || !hasChanges}
+                    startIcon={isLoading ? <CircularProgress size={20} /> : <SaveIcon />}
+                    disabled={
+                      isLoading || 
+                      !hasChanges ||
+                      nameError || 
+                      slugError || 
+                      name.trim() === "" ||
+                      slug.trim() === "" ||
+                      !validateName(name) ||
+                      !validateSlug(slug)
+                    }
                     size="large"
                   >
                     {isLoading ? "Saving..." : "Save Changes"}

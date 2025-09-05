@@ -80,11 +80,17 @@ export default function OrganizationSettingsClient({
     setShowSlugError(false);
 
     const newName = event.target.value;
+    const newSlug = kebabCase(newName);
+
     setName(newName);
-    setSlug(kebabCase(newName));
+    setSlug(newSlug);
 
     if (!validateName(newName)) {
       setNameError(true);
+    }
+
+    if (!validateSlug(newSlug)) {
+      setSlugError(true);
     }
   };
 
@@ -239,7 +245,6 @@ export default function OrganizationSettingsClient({
         if (data.organization.slug !== organizationSlug) {
           router.push(`/${data.organization.slug}/settings`);
         } else {
-          // Update the profile image preview with the new URL if it was uploaded
           if (data.organization.profileImageURL) {
             router.refresh();
           }
