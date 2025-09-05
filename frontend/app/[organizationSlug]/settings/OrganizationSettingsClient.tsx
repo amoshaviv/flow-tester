@@ -17,6 +17,21 @@ import {
 import { Save as SaveIcon, PhotoCamera, Delete as DeleteIcon } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import { kebabCase } from "change-case";
+import { ChangeEvent } from "react";
+
+// Validation functions
+const validateName = (name: string): boolean => {
+  return name.trim().length >= 2;
+};
+
+const validateSlug = (slug: string): boolean => {
+  return /^[a-z0-9-]+$/.test(slug) && slug.length >= 2;
+};
+
+const validateDomainFormat = (domain: string): boolean => {
+  const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/;
+  return domainRegex.test(domain);
+};
 
 interface OrganizationData {
   slug: string;
@@ -48,17 +63,68 @@ export default function OrganizationSettingsClient({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const router = useRouter();
 
+  // Validation state
+  const [showNameError, setShowNameError] = React.useState(false);
+  const [nameError, setNameError] = React.useState(false);
+  const [showSlugError, setShowSlugError] = React.useState(false);
+  const [slugError, setSlugError] = React.useState(false);
+  const [showDomainError, setShowDomainError] = React.useState(false);
+  const [domainError, setDomainError] = React.useState(false);
+
   // Auto-generate slug when name changes
-  const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNameChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setError("");
+    setNameError(false);
+    setSlugError(false);
+    setShowNameError(false);
+    setShowSlugError(false);
+
     const newName = event.target.value;
     setName(newName);
     setSlug(kebabCase(newName));
+
+    if (!validateName(newName)) {
+      setNameError(true);
+    }
   };
 
-  const handleSlugChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSlug(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"));
+  const handleNameBlur = (event: ChangeEvent<HTMLInputElement>) => {
     setError("");
+    setShowNameError(false);
+
+    const newName = event.target.value;
+    if (!validateName(newName)) {
+      setShowNameError(true);
+    }
+
+    const newSlug = kebabCase(newName);
+    if (!validateSlug(newSlug)) {
+      setShowSlugError(true);
+    }
+  };
+
+  const handleSlugChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setError("");
+    setSlugError(false);
+    setShowSlugError(false);
     setSuggestedSlug("");
+
+    const newSlug = event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    setSlug(newSlug);
+
+    if (!validateSlug(newSlug)) {
+      setSlugError(true);
+    }
+  };
+
+  const handleSlugBlur = (event: ChangeEvent<HTMLInputElement>) => {
+    setError("");
+    setShowSlugError(false);
+
+    const newSlug = event.target.value;
+    if (!validateSlug(newSlug)) {
+      setShowSlugError(true);
+    }
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,6 +167,29 @@ export default function OrganizationSettingsClient({
     setSlug(suggestedSlug);
     setError("");
     setSuggestedSlug("");
+  };
+
+  const handleDomainChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setError("");
+    setDomainError(false);
+    setShowDomainError(false);
+
+    const newDomain = event.target.value;
+    setDomain(newDomain);
+
+    if (!validateDomainFormat(newDomain)) {
+      setDomainError(true);
+    }
+  };
+
+  const handleDomainBlur = (event: ChangeEvent<HTMLInputElement>) => {
+    setError("");
+    setShowDomainError(false);
+
+    const newDomain = event.target.value;
+    if (!validateDomainFormat(newDomain)) {
+      setShowDomainError(true);
+    }
   };
 
   const validateDomain = (domain: string): boolean => {
@@ -241,8 +330,14 @@ export default function OrganizationSettingsClient({
                   label="Organization Name"
                   value={name}
                   onChange={handleNameChange}
+                  onBlur={handleNameBlur}
                   disabled={isLoading}
-                  helperText="The display name for your organization"
+                  error={showNameError}
+                  helperText={
+                    showNameError
+                      ? "Organization name must be at least 2 characters long"
+                      : "The display name for your organization"
+                  }
                 />
               </Grid>
 
@@ -252,8 +347,14 @@ export default function OrganizationSettingsClient({
                   label="Organization Slug"
                   value={slug}
                   onChange={handleSlugChange}
+                  onBlur={handleSlugBlur}
                   disabled={isLoading}
-                  helperText="The URL-friendly identifier for your organization (lowercase, letters, numbers, and hyphens only)"
+                  error={showSlugError}
+                  helperText={
+                    showSlugError
+                      ? "Slug must be at least 2 characters and contain only lowercase letters, numbers, and hyphens"
+                      : "The URL-friendly identifier for your organization (lowercase, letters, numbers, and hyphens only)"
+                  }
                 />
               </Grid>
 
@@ -262,9 +363,15 @@ export default function OrganizationSettingsClient({
                   fullWidth
                   label="Organization Domain"
                   value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
+                  onChange={handleDomainChange}
+                  onBlur={handleDomainBlur}
                   disabled={isLoading}
-                  helperText="The domain name for your organization (e.g., acme-corp.com)"
+                  error={showDomainError}
+                  helperText={
+                    showDomainError
+                      ? "Please enter a valid domain (e.g., example.com, subdomain.example.org)"
+                      : "The domain name for your organization (e.g., acme-corp.com)"
+                  }
                 />
               </Grid>
 
@@ -301,7 +408,19 @@ export default function OrganizationSettingsClient({
                   type="submit"
                   variant="contained"
                   startIcon={isLoading ? <CircularProgress size={20} /> : <SaveIcon />}
-                  disabled={isLoading || !hasChanges}
+                  disabled={
+                    isLoading ||
+                    !hasChanges ||
+                    nameError ||
+                    slugError ||
+                    domainError ||
+                    name.trim() === "" ||
+                    slug.trim() === "" ||
+                    domain.trim() === "" ||
+                    !validateName(name) ||
+                    !validateSlug(slug) ||
+                    !validateDomainFormat(domain)
+                  }
                   size="large"
                 >
                   {isLoading ? "Saving..." : "Save Changes"}
