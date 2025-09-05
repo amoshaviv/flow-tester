@@ -1,44 +1,75 @@
 import * as React from "react";
-import Container from "@mui/material/Container";
-import Typography from "@mui/material/Typography";
-import Box from "@mui/material/Box";
-import Link from "@mui/material/Link";
-import NextLink from "next/link";
-import { redirect, RedirectType } from 'next/navigation'
-
+import { redirect, RedirectType, notFound } from "next/navigation";
 import { getSession } from "@/lib/next-auth";
 import { getDBModels } from "@/lib/sequelize";
+import UsersClient from "./UsersClient";
+import { NextResponse } from "next/server";
 
-export default async function Home() {
+const redirectToSignIn = () =>
+  redirect("/authentication/signin", RedirectType.push);
+const redirectToOrganizations = () =>
+  redirect("/organizations", RedirectType.push);
+
+export default async function UsersPage({
+  params,
+}: {
+  params: Promise<{ organizationSlug: string }>;
+}) {
   const session = await getSession();
   const email = session?.user?.email;
-  if(!email) return redirect('/authentication/signin', RedirectType.push);
+  if (!email) return redirectToSignIn();
 
+  const { organizationSlug } = await params;
   const dbModels = await getDBModels();
-  const { Organization, User } = dbModels;
-  
-  const user = await User.findByEmail(email);
-  if(!user) return redirect('/authentication/signin', RedirectType.push);
+  const { User, Organization, UsersOrganizations } = dbModels;
 
-  const organizations = await user.getOrganizations();
-  
-  if (!organizations || organizations.length === 0) return redirect('/organizations/create', RedirectType.push);
-  
-  return (
-    <Container maxWidth="lg">
-      <Box
-        sx={{
-          my: 4,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
+  try {
+    const user = await User.findByEmail(email);
+    if (!user) return redirectToSignIn();
+
+    // Get organization with current user's role
+    const result = await Organization.findBySlugAndUserEmailWithRole(
+      organizationSlug,
+      email
+    );
+
+    if (!result) return redirectToOrganizations();
+
+    const { organization, userRole } = result;
+
+    // Only owners and admins can view user management
+    if (userRole !== "owner" && userRole !== "admin") {
+      console.log('here!!');
+      notFound();
+      // return redirectToUnauthorized();
+    }
+
+    // Get all users with their roles
+    const users = await UsersOrganizations.getUsersByOrganizationWithRoles(organization);
+
+    return (
+      <UsersClient
+        organization={{
+          slug: organization.slug,
+          name: organization.name,
+          domain: organization.domain,
         }}
-      >
-        <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
-          Organization Users
-        </Typography>
-      </Box>
-    </Container>
-  );
+        users={users}
+        currentUserRole={userRole}
+        organizationSlug={organizationSlug}
+      />
+    );
+  } catch (err: any) {
+    console.log(err);
+    if (err.digest === 'NEXT_HTTP_ERROR_FALLBACK;404') {
+      throw err
+    }
+
+    return (
+      <div>
+        <h1>Error</h1>
+        <p>An error occurred while loading the users.</p>
+      </div>
+    );
+  }
 }

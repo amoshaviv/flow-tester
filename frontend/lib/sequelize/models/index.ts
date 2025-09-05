@@ -9,6 +9,7 @@ import defineTestModel, { ITestModel } from "./test";
 import defineTestVersionModel, { ITestVersionModel } from "./test-version";
 import defineTestRunVersionModel, { ITestRunModel } from "./test-run";
 import defineResetPasswordTokenModel from "./reset-password-token";
+import defineInviteModel, { IInviteModel } from "./invite";
 
 export interface IModels {
   User: IUserModel;
@@ -18,6 +19,7 @@ export interface IModels {
   Test: ITestModel;
   TestVersion: ITestVersionModel;
   TestRun: ITestRunModel;
+  Invite: IInviteModel;
 }
 
 export default function defineModels(sequelizeConnection: Sequelize): IModels {
@@ -28,6 +30,7 @@ export default function defineModels(sequelizeConnection: Sequelize): IModels {
   const TestVersion = defineTestVersionModel(sequelizeConnection);
   const TestRun = defineTestRunVersionModel(sequelizeConnection);
   const UsersOrganizations = defineUsersOrganizationsModel(sequelizeConnection);
+  const Invite = defineInviteModel(sequelizeConnection);
 
   return {
     User,
@@ -37,5 +40,6 @@ export default function defineModels(sequelizeConnection: Sequelize): IModels {
     Test,
     TestVersion,
     TestRun,
+    Invite,
   };
 }

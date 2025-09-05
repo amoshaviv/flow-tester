@@ -38,6 +38,15 @@ export interface IOrganizationModel extends ModelStatic<IOrganizationInstance> {
     slug: string,
     email: string
   ): Promise<IOrganizationInstance | null>;
+  findBySlugAndUserEmailWithRole(
+    slug: string,
+    email: string
+  ): Promise<{ organization: IOrganizationInstance; userRole: string } | null>;
+  addUserToOrganization(
+    organization: IOrganizationInstance,
+    user: IUserInstance,
+    role: string
+  ): Promise<{ success: boolean; user?: any; error?: string }>;
   createWithUser(
     name: string,
     domain: string,
@@ -240,6 +249,63 @@ export default function defineOrganizationModel(
     // Update the organization
     await organization.update(updateData);
     return { success: true, organization };
+  };
+
+  Organization.findBySlugAndUserEmailWithRole = async function findBySlugAndUserEmailWithRole(
+    slug: string,
+    email: string
+  ) {
+    const result = await this.findOne({
+      where: {
+        slug: slug,
+      },
+      include: {
+        association: "users",
+        where: { email: email },
+        attributes: ["email"],
+        through: {
+          attributes: ["role"],
+        },
+      },
+    });
+
+    if (!result) return null;
+
+    const userRole = (result as any).users[0]?.UsersOrganizations?.role;
+    return {
+      organization: result,
+      userRole: userRole || "user",
+    };
+  };
+
+  Organization.addUserToOrganization = async function addUserToOrganization(
+    organization: IOrganizationInstance,
+    user: IUserInstance,
+    role: string
+  ) {
+    // Check if user is already in organization using ORM
+    const existingUsers = await organization.getUsers({
+      where: {
+        id: user.id,
+      },
+    });
+
+    if (existingUsers && existingUsers.length > 0) {
+      return { success: false, error: "User is already a member of this organization" };
+    }
+
+    // Add user to organization
+    await organization.addUser(user, { through: { role } });
+
+    return {
+      success: true,
+      user: {
+        email: user.email,
+        displayName: user.displayName,
+        profileImageURL: user.profileImageURL,
+        role,
+      },
+    };
   };
 
   return Organization;

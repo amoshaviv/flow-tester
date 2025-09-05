@@ -56,6 +56,65 @@ function getOrganizationInfoFromEmail(
   }
 }
 
+async function handleInviteSignup(credentials: any, dbModels: any) {
+  const { User, Organization, Invite } = dbModels;
+  const cookieStore = await cookies();
+
+  // Find and validate the invite
+  const invite = await Invite.findByToken(credentials.inviteToken);
+
+  if (!invite) {
+    throw new Error("Invalid or expired invitation");
+  }
+
+  if (invite.isExpired()) {
+    throw new Error("This invitation has expired");
+  }
+
+  // Verify email matches invite
+  if (invite.email !== credentials.email) {
+    throw new Error("Email doesn't match invitation");
+  }
+
+  // Check if user already exists
+  const existingUser = await User.findByEmail(invite.email);
+  if (existingUser) {
+    throw new Error("A user with this email address already exists");
+  }
+
+  // Create the user (password will be hashed in the model)
+  const newUser = await User.create({
+    email: invite.email,
+    displayName: credentials.displayName,
+    password: credentials.password,
+    provider: "credentials",
+    providerId: credentials.email,
+  });
+
+  // Get the organization from the invite
+  const organization = await invite.getOrganization();
+
+  // Add user to organization with the invited role
+  await Organization.addUserToOrganization(organization, newUser, invite.role);
+
+  // Mark invite as used
+  await invite.markAsUsed();
+
+  // Set cookies for redirect
+  cookieStore.set("lastOrganization", organization.slug);
+  const projects = await organization.getProjects();
+  if (projects.length > 0) {
+    cookieStore.set("lastProject", projects[0].slug);
+  }
+
+  return {
+    id: newUser.id.toString(),
+    email: newUser.email,
+    displayName: newUser.displayName,
+    profileImageURL: newUser.profileImageURL,
+  };
+}
+
 export const authOptions = {
   providers: [
     CredentialsProvider({
@@ -64,12 +123,18 @@ export const authOptions = {
         email: { label: "Email", type: "email" },
         displayName: { label: "Name", type: "displayName" },
         password: { label: "Password", type: "password" },
+        inviteToken: { label: "Invite Token", type: "text", optional: true },
       },
       async authorize(credentials, req) {
         const dbModels = await getDBModels();
-        const { User, Organization, Project } = dbModels;
+        const { User, Organization, Project, Invite } = dbModels;
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Invalid credentials");
+        }
+
+        // Handle invite signup flow
+        if (credentials.inviteToken && credentials.displayName) {
+          return await handleInviteSignup(credentials, dbModels);
         }
 
         const user = await User.findByEmail(credentials.email);
@@ -96,7 +161,7 @@ export const authOptions = {
               organizationInformation.domain,
               newUser
             );
-            
+
             const defaultProject = await Project.createWithOrganization(
               `Default Project`,
               newUser,
