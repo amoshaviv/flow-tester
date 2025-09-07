@@ -7,8 +7,6 @@ import { NextResponse } from "next/server";
 
 const redirectToSignIn = () =>
   redirect("/authentication/signin", RedirectType.push);
-const redirectToOrganizations = () =>
-  redirect("/organizations", RedirectType.push);
 
 export default async function UsersPage({
   params,
@@ -33,15 +31,12 @@ export default async function UsersPage({
       email
     );
 
-    if (!result) return redirectToOrganizations();
-
+    if (!result) return notFound();
     const { organization, userRole } = result;
 
     // Only owners and admins can view user management
     if (userRole !== "owner" && userRole !== "admin") {
-      console.log('here!!');
       notFound();
-      // return redirectToUnauthorized();
     }
 
     // Get all users with their roles
@@ -55,6 +50,7 @@ export default async function UsersPage({
           domain: organization.domain,
         }}
         users={users}
+        currentUserEmail={user.email}
         currentUserRole={userRole}
         organizationSlug={organizationSlug}
       />

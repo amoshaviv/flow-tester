@@ -1,5 +1,5 @@
 import * as React from "react";
-import { redirect, RedirectType } from "next/navigation";
+import { redirect, RedirectType, notFound } from "next/navigation";
 import { getSession } from "@/lib/next-auth";
 import { getDBModels } from "@/lib/sequelize";
 import OrganizationSettingsClient from "./OrganizationSettingsClient";
@@ -26,11 +26,17 @@ export default async function OrganizationSettingsPage({
     const user = await User.findByEmail(email);
     if (!user) return redirectToSignIn();
 
-    const organization = await Organization.findBySlugAndUserEmail(
+    const result = await Organization.findBySlugAndUserEmailWithRole(
       organizationSlug,
       email
     );
-    if (!organization) return redirectToOrganizations();
+    if (!result) return notFound();
+    const { organization, userRole } = result;
+
+    // Only owners and admins can view user management
+    if (userRole !== "owner" && userRole !== "admin") {
+      return notFound();
+    }
 
     return (
       <OrganizationSettingsClient
@@ -43,8 +49,12 @@ export default async function OrganizationSettingsPage({
         organizationSlug={organizationSlug}
       />
     );
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
+    if (err.digest === 'NEXT_HTTP_ERROR_FALLBACK;404') {
+      throw err
+    }
+
     return (
       <div>
         <h1>Error</h1>

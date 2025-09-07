@@ -105,13 +105,13 @@ export default function InviteSignupClient({ invite }: InviteSignupClientProps) 
         // Successfully signed up and signed in, redirect to organization projects page
         router.push(`/${invite.organization.slug}/projects`);
       } else {
+        setIsLoading(false);
         setError(result?.error || "Failed to create account");
       }
     } catch (error) {
+      setIsLoading(false);
       console.error("Error creating account:", error);
       setError("An error occurred while creating your account");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -129,7 +129,7 @@ export default function InviteSignupClient({ invite }: InviteSignupClientProps) 
   return (
     <Container maxWidth="sm" sx={{ py: 8 }}>
       <Paper elevation={3} sx={{ overflow: 'hidden' }}>
-        {/* Header */}
+        {/* Header
         <Box
           sx={{
             bgcolor: 'primary.main',
@@ -145,7 +145,7 @@ export default function InviteSignupClient({ invite }: InviteSignupClientProps) 
           <Typography variant="h6">
             Join {invite.organization.name}
           </Typography>
-        </Box>
+        </Box> */}
 
         <CardContent sx={{ p: 4 }}>
           {/* Invitation Details */}
@@ -155,15 +155,15 @@ export default function InviteSignupClient({ invite }: InviteSignupClientProps) 
                 <BusinessIcon />
               </Avatar>
               <Box>
-                <Typography variant="h6">{invite.organization.name}</Typography>
+                <Typography variant="h6">Join {invite.organization.name}</Typography>
                 <Typography variant="body2" color="text.secondary">
                   {invite.organization.domain}
                 </Typography>
               </Box>
             </Box>
-            
+
             <Divider sx={{ my: 2 }} />
-            
+
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <Avatar src={invite.invitedBy.profileImageURL} sx={{ mr: 2, width: 32, height: 32 }} />
               <Box>

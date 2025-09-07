@@ -27,11 +27,19 @@ export const PATCH = async (
   if (!user) return notAuthorized();
 
   try {
-    const organization = await Organization.findBySlugAndUserEmail(
-      organizationSlug,
-      email
-    );
-    if (!organization) return notAuthorized();
+    const organizationWithRole =
+      await Organization.findBySlugAndUserEmailWithRole(
+        organizationSlug,
+        email
+      );
+
+    if (!organizationWithRole) return notAuthorized();
+    const { organization, userRole } = organizationWithRole;
+
+    // Only owners and admins can view user management
+    if (userRole !== "owner" && userRole !== "admin") {
+      return notAuthorized();
+    }
 
     const formData = await request.formData();
     const name = formData.get("name") as string;
@@ -60,7 +68,10 @@ export const PATCH = async (
       }
 
       // Upload to S3
-      const uploadResult = await uploadOrganizationProfileImage(imageFile, organizationSlug);
+      const uploadResult = await uploadOrganizationProfileImage(
+        imageFile,
+        organizationSlug
+      );
       if (!uploadResult.success) {
         return NextResponse.json(
           { message: uploadResult.error || "Failed to upload image" },

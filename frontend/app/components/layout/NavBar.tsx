@@ -21,9 +21,10 @@ import { OrganizeImportsMode } from "typescript";
 
 export default function NavBar({
   organization,
+  role,
 }: {
   organization?: IOrganizationInstance;
-  userOrganization?: IOrganizationInstance[];
+  role: string;
 }) {
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated";
@@ -110,7 +111,7 @@ export default function NavBar({
                 open={Boolean(anchorElOrganization)}
                 onClose={handleCloseOrganizationMenu}
               >
-                <ListItem disablePadding>
+                {(role === 'owner' || role === 'admin') && <ListItem disablePadding>
                   <ListItemButton
                     onClick={handleCloseOrganizationMenu}
                     component={Link}
@@ -118,7 +119,7 @@ export default function NavBar({
                   >
                     <ListItemText primary={`Edit ${organization.name} Settings`} />
                   </ListItemButton>
-                </ListItem>
+                </ListItem>}
                 <ListItem disablePadding>
                   <ListItemButton
                     onClick={handleCloseOrganizationMenu}
@@ -128,7 +129,7 @@ export default function NavBar({
                     <ListItemText primary={`View ${organization.name} Projects`} />
                   </ListItemButton>
                 </ListItem>
-                <ListItem disablePadding>
+                {(role === 'owner' || role === 'admin') && <ListItem disablePadding>
                   <ListItemButton
                     onClick={handleCloseOrganizationMenu}
                     component={Link}
@@ -136,7 +137,7 @@ export default function NavBar({
                   >
                     <ListItemText primary={`Manage ${organization.name} Users`} />
                   </ListItemButton>
-                </ListItem>
+                </ListItem>}
               </Menu>
             </Box>
           )}

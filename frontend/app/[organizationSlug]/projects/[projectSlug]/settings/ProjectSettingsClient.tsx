@@ -321,7 +321,7 @@ export default function ProjectSettingsClient({
                 </Grid>
                 <Grid>
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     color="error"
                     startIcon={<DeleteIcon />}
                     onClick={handleDeleteClick}

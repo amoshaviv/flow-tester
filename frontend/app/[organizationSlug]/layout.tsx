@@ -25,14 +25,16 @@ export default async function OrganizationLayout(props: {
   if (organizationSlug && email) {
     const user = await User.findByEmail(email);
 
-    const organization = await Organization.findBySlugAndUserEmail(
+    const result = await Organization.findBySlugAndUserEmailWithRole(
       organizationSlug,
       email
     );
+    if (!result) return <h1>Not Found</h1>;
+    const { organization, userRole } = result;
 
     if (organization && user) {
       return [
-        <NavBar key="nav-bar" organization={organization.toJSON()} />,
+        <NavBar key="nav-bar" organization={organization.toJSON()} role={userRole}/>,
         children,
       ];
     } else {
