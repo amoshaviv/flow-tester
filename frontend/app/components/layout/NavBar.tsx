@@ -59,6 +59,8 @@ export default function NavBar({
     signOut();
   };
 
+  const homeLink = organization ? `${organization.slug}/projects` : '/';
+
   return (
     <Box sx={{ display: "flex" }}>
       <AppBar
@@ -142,9 +144,9 @@ export default function NavBar({
             </Box>
           )}
           <Box sx={{ flexGrow: 1, textAlign: "center" }}>
-            <Link href="/">
+            <Link href={homeLink}>
               <img
-                alt="Application"
+                alt="Home"
                 src="/img/logo.png"
                 style={{ height: 40, width: 40 }}
               />
@@ -191,9 +193,9 @@ export default function NavBar({
                   <ListItemButton
                     onClick={handleCloseUserMenu}
                     component={Link}
-                    href={"/dashboard"}
+                    href={"/profile"}
                   >
-                    <ListItemText primary="Dashboard" />
+                    <ListItemText primary="Edit Profile" />
                   </ListItemButton>
                 </ListItem>
                 <MenuItem onClick={handleSignout}>

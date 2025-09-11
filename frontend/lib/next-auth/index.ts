@@ -4,6 +4,13 @@ import { type NextAuthOptions, getServerSession } from "next-auth";
 import { getDBModels } from "@/lib/sequelize";
 import { capitalCase } from "change-case";
 import { cookies } from "next/headers";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
+import { IOrganizationInstance } from "../sequelize/models/organization";
+import { IUserInstance } from "../sequelize/models/user";
+
+const sqsClient = new SQSClient({ region: "us-west-2" });
+const QUEUE_URL =
+  "https://sqs.us-west-2.amazonaws.com/746664778706/flow-tester-test-runs-queue";
 
 type OrganizationInfo = { domain: string; name: string };
 function getOrganizationInfoFromEmail(
@@ -115,6 +122,32 @@ async function handleInviteSignup(credentials: any, dbModels: any) {
   };
 }
 
+async function createAnalysisQueueMessage(
+  user: IUserInstance,
+  organization: IOrganizationInstance
+) {
+  try {
+    const message = {
+      taskType: "website-analysis",
+      userId: user.id,
+      organizationDomain: organization.domain,
+      organizationSlug: organization.slug,
+      organizationId: organization.id,
+      modelSlug: "gemini-2.5-flash",
+      modelProvider: "Google",
+    };
+
+    const command = new SendMessageCommand({
+      QueueUrl: QUEUE_URL,
+      MessageBody: JSON.stringify(message),
+    });
+
+    await sqsClient.send(command);
+  } catch (sqsError) {
+    console.error("Failed to send SQS message:", sqsError);
+  }
+}
+
 export const authOptions = {
   providers: [
     CredentialsProvider({
@@ -161,6 +194,8 @@ export const authOptions = {
               organizationInformation.domain,
               newUser
             );
+
+            createAnalysisQueueMessage(newUser, defaultOrganization);
 
             const defaultProject = await Project.createWithOrganization(
               `Default Project`,
@@ -212,15 +247,46 @@ export const authOptions = {
     signIn: "/authentication/signin",
   },
   callbacks: {
-    async jwt({ token, user, session }) {
+    async jwt({ token, user, trigger, session }) {
+      console.log("JWT callback triggered with:", {
+        trigger,
+        hasUser: !!user,
+        hasSession: !!session,
+      });
+
       if (user) {
         token.email = user.email;
         token.displayName = user.displayName;
         token.profileImageURL = user.profileImageURL;
       }
+
+      // Handle session update triggers
+      if (trigger === "update" && session) {
+        console.log("Updating JWT token with session data:", session);
+        token.email = session.email || token.email;
+        token.displayName = session.displayName || token.displayName;
+        token.profileImageURL =
+          session.profileImageURL || token.profileImageURL;
+      }
+
       return token;
     },
-    async session({ session, token, trigger }) {
+    async session({ session, token, trigger, newSession }) {
+      console.log("Session callback triggered with:", {
+        trigger,
+        hasNewSession: !!newSession,
+      });
+
+      // Handle session update triggers (like profile updates)
+      if (trigger === "update" && newSession) {
+        console.log("Updating session with new data:", newSession);
+        // Update token with new session data
+        token.email = newSession.email || token.email;
+        token.displayName = newSession.displayName || token.displayName;
+        token.profileImageURL =
+          newSession.profileImageURL || token.profileImageURL;
+      }
+
       return {
         ...session,
         user: {

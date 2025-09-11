@@ -70,7 +70,7 @@ export default function TestDetailsClient({
   const [runModalOpen, setRunModalOpen] = React.useState(false);
   const [selectedTestToRun, setSelectedTestToRun] = React.useState<string>("");
   const [selectedVersionToRun, setSelectedVersionToRun] = React.useState<string>("");
-  const [selectedModelToRun, setSelectedModelToRun] = React.useState<string>("gpt-5-mini");
+  const [selectedModelToRun, setSelectedModelToRun] = React.useState<string>("gemini-2.5-flash");
   const [isRunning, setIsRunning] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -171,7 +171,7 @@ export default function TestDetailsClient({
         setRunModalOpen(false);
         setSelectedTestToRun("");
         setSelectedVersionToRun("");
-        setSelectedModelToRun("gpt-5-mini");
+        setSelectedModelToRun("gemini-2.5-flash");
         // Refresh test data to get the new test run
         fetchTestData();
       } else {
@@ -189,7 +189,7 @@ export default function TestDetailsClient({
     setRunModalOpen(false);
     setSelectedTestToRun("");
     setSelectedVersionToRun("");
-    setSelectedModelToRun("gpt-5-mini");
+    setSelectedModelToRun("gemini-2.5-flash");
   };
 
   const handleDeleteTest = () => {

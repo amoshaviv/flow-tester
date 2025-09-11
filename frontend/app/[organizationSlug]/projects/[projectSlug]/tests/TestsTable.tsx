@@ -208,7 +208,7 @@ export default function EnhancedTable({
   const [runModalOpen, setRunModalOpen] = React.useState(false);
   const [selectedTestToRun, setSelectedTestToRun] = React.useState<string>("");
   const [selectedVersionToRun, setSelectedVersionToRun] = React.useState<string>("");
-  const [selectedModelToRun, setSelectedModelToRun] = React.useState<string>("gpt-5-mini");
+  const [selectedModelToRun, setSelectedModelToRun] = React.useState<string>("gemini-2.5-flash");
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isRunning, setIsRunning] = React.useState(false);
   const router = useRouter();
@@ -342,7 +342,7 @@ export default function EnhancedTable({
         setRunModalOpen(false);
         setSelectedTestToRun("");
         setSelectedVersionToRun("");
-        setSelectedModelToRun("gpt-5-mini");
+        setSelectedModelToRun("gemini-2.5-flash");
       } else {
         console.error("Failed to run test");
       }
@@ -358,7 +358,7 @@ export default function EnhancedTable({
     setRunModalOpen(false);
     setSelectedTestToRun("");
     setSelectedVersionToRun("");
-    setSelectedModelToRun("gpt-5-mini");
+    setSelectedModelToRun("gemini-2.5-flash");
   };
 
   const sortedTests = React.useMemo(() => {

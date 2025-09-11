@@ -172,3 +172,15 @@ export const uploadProjectProfileImage = async (
     filename: `profile-${uuidv4()}.${file.name.split(".").pop() || "jpg"}`,
   });
 };
+
+export const uploadProfileImage = async (
+  file: File,
+  organizationSlug: string,
+  projectSlug: string
+): Promise<ImageUploadResult> => {
+  return uploadImageToS3({
+    file,
+    folder: `uploads/profiles`,
+    filename: `profile-${uuidv4()}.${file.name.split(".").pop() || "jpg"}`,
+  });
+};

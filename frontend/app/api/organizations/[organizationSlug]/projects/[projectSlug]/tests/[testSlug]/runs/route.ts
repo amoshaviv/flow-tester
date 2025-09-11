@@ -209,14 +209,15 @@ export const POST = async (
       const message = {
         taskType: "test-run",
         testRunSlug: newTestRun.slug,
+        testVersionSlug: targetVersion.slug,
         testSlug: testSlug,
         projectSlug: projectSlug,
         organizationSlug: organizationSlug,
         createdAt: newTestRun.createdAt,
         userEmail: user.email,
         task: targetVersion.description,
-        modelSlug: modelSlug || "gpt-5-mini",
-        modelProvider: modelProvider || "OpenAI",
+        modelSlug: modelSlug || "gemini-2.5-flash",
+        modelProvider: modelProvider || "Google",
       };
 
       const command = new SendMessageCommand({

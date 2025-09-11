@@ -10,10 +10,12 @@ import defineTestVersionModel, { ITestVersionModel } from "./test-version";
 import defineTestRunVersionModel, { ITestRunModel } from "./test-run";
 import defineResetPasswordTokenModel from "./reset-password-token";
 import defineInviteModel, { IInviteModel } from "./invite";
+import defineOrganizationAnalysisModel, { IOrganizationAnalysisModel } from "./organization-analysis";
 
 export interface IModels {
   User: IUserModel;
   Organization: IOrganizationModel;
+  OrganizationAnalysis: IOrganizationAnalysisModel;
   UsersOrganizations: IUsersOrganizationsModel;
   Project: IProjectModel;
   Test: ITestModel;
@@ -25,6 +27,7 @@ export interface IModels {
 export default function defineModels(sequelizeConnection: Sequelize): IModels {
   const User = defineUserModel(sequelizeConnection);
   const Organization = defineOrganizationModel(sequelizeConnection);
+  const OrganizationAnalysis = defineOrganizationAnalysisModel(sequelizeConnection);
   const Project = defineProjectModel(sequelizeConnection);
   const Test = defineTestModel(sequelizeConnection);
   const TestVersion = defineTestVersionModel(sequelizeConnection);
@@ -35,6 +38,7 @@ export default function defineModels(sequelizeConnection: Sequelize): IModels {
   return {
     User,
     Organization,
+    OrganizationAnalysis,
     UsersOrganizations,
     Project,
     Test,

@@ -2,9 +2,18 @@ from boto3 import client
 import asyncio
 import time
 from agent import processTask
+from analyzer import processAnalysis
 import json
 import base64
-from db_operations import update_test_run_to_running, update_test_run_to_failed, update_test_run_to_succeeded
+from db_operations import update_test_run_to_running, update_test_run_to_failed, update_test_run_to_succeeded, create_new_analysis
+import random
+import string
+
+# Generate random string of letters and digits
+def generate_random_string(length):
+    characters = string.ascii_letters + string.digits
+    return ''.join(random.choices(characters, k=length))
+
 
 s3 = client('s3')
 
@@ -76,7 +85,34 @@ def map_screenshots_to_paths(slug, screenshots):
         mapped.append({"id": idx, "path": path})
     return mapped
 
+def save_analysis(organization_slug, result):
+    is_successful = result.is_successful()
+    is_done = result.is_done()
+    final_result = result.final_result()
+    has_errors = result.has_errors()
+    errors = result.errors()
+    usage = result.usage
 
+    analysis_data = {
+        "usage": usage,
+        "is_done": is_done,
+        "is_successful": is_successful,
+        "has_errors": has_errors,
+        "final_result": final_result,
+        "errors": errors,
+    }
+    analysis_json = json.dumps(analysis_data, cls=SafeJSONEncoder, indent=2)
+    analysis_key = generate_random_string(14)
+    key = f"organizations/{organization_slug}/analysis/{analysis_key}.json"
+    s3.put_object(
+        Bucket=S3_BUCKET_NAME,
+        Key=key,
+        Body=analysis_json,
+        ContentType='application/json',
+    )
+    
+    return key
+    
 def save_result_data(slug, result):
     screenshots = map_screenshots_to_paths(slug, result.screenshots())
     model_actions = result.model_actions()
@@ -128,54 +164,71 @@ def process_message(body):
     """Process a task and update test run status."""
     print(f"Processing message: {body}")
     message = json.loads(body)
-    slug = message['testRunSlug']
+    type = message['taskType']
     
-    # Update test run status to 'running' when processing starts
-    print(f"Updating test run {slug} status to 'running'")
-    if update_test_run_to_running(slug):
-        print(f"Successfully updated test run {slug} status to 'running'")
-    else:
-        print(f"Failed to update test run {slug} status to 'running'")
+    if type == "website-analysis":
+        organization_domain = message['organizationDomain']
+        organization_slug = message['organizationSlug']
+        organization_id = message['organizationId']
     
-    try:
-        result = asyncio.run(processTask(message))
-        save_result(slug, result)
-        is_done = result.is_done()
-        model_actions = result.model_actions()
+        print(f"Analyzing website: {organization_domain}")
+        try:
+            result = asyncio.run(processAnalysis(message))
+            analysis_url = save_analysis(organization_slug, result)
+            create_new_analysis(organization_id, analysis_url)
+        except Exception as e:
+            print(f"Analysis failed with error: {e}")
+            raise e
+        
+    if type == "test-run":
+        slug = message['testRunSlug']
+        
+        # Update test run status to 'running' when processing starts
+        print(f"Updating test run {slug} status to 'running'")
+        if update_test_run_to_running(slug):
+            print(f"Successfully updated test run {slug} status to 'running'")
+        else:
+            print(f"Failed to update test run {slug} status to 'running'")
+        
+        try:
+            result = asyncio.run(processTask(message))
+            save_result(slug, result)
+            is_done = result.is_done()
+            model_actions = result.model_actions()
 
-        mark_failed = False
-        if is_done is False:
-            mark_failed = True
-        elif model_actions and isinstance(model_actions, list):
-            last_action = model_actions[-1]
-            if isinstance(last_action, dict):
-                done_prop = last_action.get("done")
-                if isinstance(done_prop, dict) and done_prop.get("success") is False:
-                    mark_failed = True
+            mark_failed = False
+            if is_done is False:
+                mark_failed = True
+            elif model_actions and isinstance(model_actions, list):
+                last_action = model_actions[-1]
+                if isinstance(last_action, dict):
+                    done_prop = last_action.get("done")
+                    if isinstance(done_prop, dict) and done_prop.get("success") is False:
+                        mark_failed = True
 
-        if mark_failed:
-            print(f"Task failed, updating test run {slug} status to 'failed'")
+            if mark_failed:
+                print(f"Task failed, updating test run {slug} status to 'failed'")
+                if update_test_run_to_failed(slug):
+                    print(f"Successfully updated test run {slug} status to 'failed'")
+                else:
+                    print(f"Failed to update test run {slug} status to 'failed'")
+            else:
+                print(f"Task completed successfully, updating test run {slug} status to 'succeeded'")
+                if update_test_run_to_succeeded(slug):
+                    print(f"Successfully updated test run {slug} status to 'succeeded'")
+                else:
+                    print(f"Failed to update test run {slug} status to 'succeeded'")
+
+            print("Task complete.")
+        except Exception as e:
+            # Update status to 'failed' if task failed
+            print(f"Task failed with error: {e}")
+            print(f"Updating test run {slug} status to 'failed'")
             if update_test_run_to_failed(slug):
                 print(f"Successfully updated test run {slug} status to 'failed'")
             else:
                 print(f"Failed to update test run {slug} status to 'failed'")
-        else:
-            print(f"Task completed successfully, updating test run {slug} status to 'succeeded'")
-            if update_test_run_to_succeeded(slug):
-                print(f"Successfully updated test run {slug} status to 'succeeded'")
-            else:
-                print(f"Failed to update test run {slug} status to 'succeeded'")
-
-        print("Task complete.")
-    except Exception as e:
-        # Update status to 'failed' if task failed
-        print(f"Task failed with error: {e}")
-        print(f"Updating test run {slug} status to 'failed'")
-        if update_test_run_to_failed(slug):
-            print(f"Successfully updated test run {slug} status to 'failed'")
-        else:
-            print(f"Failed to update test run {slug} status to 'failed'")
-        raise e
+            raise e
 
 def worker():
     time.sleep(10)
