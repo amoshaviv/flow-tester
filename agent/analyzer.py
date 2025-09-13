@@ -5,6 +5,16 @@ import os
 import json
 import logging
 from db_operations import get_latest_successful_run_by_version
+from pydantic import BaseModel
+
+class TestCase(BaseModel):
+	title: str
+	description: str
+	outputStructure: str
+class TestCases(BaseModel):
+    website: str
+    type: str
+    tests: list[TestCase]
 
 load_dotenv()
 
@@ -56,6 +66,7 @@ async def processAnalysis(message):
         llm=llm,
         browser=browser,
         calculate_cost=True,
+        output_model_schema=TestCases
     )
     result = await agent.run()
     return result

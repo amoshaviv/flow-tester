@@ -88,6 +88,8 @@ def map_screenshots_to_paths(slug, screenshots):
 def save_analysis(organization_slug, result):
     is_successful = result.is_successful()
     is_done = result.is_done()
+    extracted_content = result.extracted_content()
+    model_outputs = result.model_outputs()
     final_result = result.final_result()
     has_errors = result.has_errors()
     errors = result.errors()
@@ -99,6 +101,8 @@ def save_analysis(organization_slug, result):
         "is_successful": is_successful,
         "has_errors": has_errors,
         "final_result": final_result,
+        "model_outputs": model_outputs,
+        "extracted_content": extracted_content,
         "errors": errors,
     }
     analysis_json = json.dumps(analysis_data, cls=SafeJSONEncoder, indent=2)
@@ -230,9 +234,16 @@ def process_message(body):
                 print(f"Failed to update test run {slug} status to 'failed'")
             raise e
 
+def testAnalyzer(): 
+    message = { "organizationDomain": "target.com", "modelSlug": "gpt-5-mini", "modelProvider": "openai" } 
+    result = asyncio.run(processAnalysis(message))
+    analysis_url = save_analysis("booking", result)
+    create_new_analysis(3, analysis_url)
+
 def worker():
     time.sleep(10)
-
+    testAnalyzer()
+    return False
     response = sqs.receive_message(
         QueueUrl=QUEUE_URL,
         MaxNumberOfMessages=1

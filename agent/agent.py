@@ -168,35 +168,35 @@ def prepareInitialActions(actions):
 
 async def processTask(message):
     task = message['task']
-    testVersionSlug = message['testVersionSlug']
+    # testVersionSlug = message['testVersionSlug']
     
-    # Get previous successful run data
-    previous_run_data = get_successful_run_data(testVersionSlug)
+    # # Get previous successful run data
+    # previous_run_data = get_successful_run_data(testVersionSlug)
     
-    if previous_run_data:
-        logger.info(f"Found previous successful run data for version: {testVersionSlug}")
+    # if previous_run_data:
+    #     logger.info(f"Found previous successful run data for version: {testVersionSlug}")
         
-        # You can now use the previous_run_data in your task
-        # previous_run_data contains:
-        # - run_info: database information about the run (slug, results_url, model, etc.)
-        # - run_data: the complete JSON data from S3 (screenshots, actions, results, etc.)
+    #     # You can now use the previous_run_data in your task
+    #     # previous_run_data contains:
+    #     # - run_info: database information about the run (slug, results_url, model, etc.)
+    #     # - run_data: the complete JSON data from S3 (screenshots, actions, results, etc.)
         
-        # Example: You could modify the task based on previous run data
-        # task_with_context = f"{task}\n\nPrevious successful run info:\n{json.dumps(previous_run_data['run_info'], indent=2)}"
+    #     # Example: You could modify the task based on previous run data
+    #     # task_with_context = f"{task}\n\nPrevious successful run info:\n{json.dumps(previous_run_data['run_info'], indent=2)}"
         
-        # For now, we'll just log that we have the data
-        # logger.info(f"Previous run had {len()} screenshots")
-    else:
-        logger.info(f"No previous successful run found for version: {testVersionSlug}")
+    #     # For now, we'll just log that we have the data
+    #     # logger.info(f"Previous run had {len()} screenshots")
+    # else:
+    #     logger.info(f"No previous successful run found for version: {testVersionSlug}")
     
     llm = getLLM(message)
-    model_actions = prepareInitialActions(previous_run_data['run_data'].get('model_actions', []))
+    # model_actions = prepareInitialActions(previous_run_data['run_data'].get('model_actions', []))
     agent = Agent(
         task=task,
         llm=llm,
         browser=browser,
         calculate_cost=True,
-        initial_actions=model_actions
+        # initial_actions=model_actions
     )
     result = await agent.run()
     return result
