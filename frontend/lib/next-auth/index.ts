@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { IOrganizationInstance } from "../sequelize/models/organization";
 import { IUserInstance } from "../sequelize/models/user";
+import { IOrganizationAnalysisInstance } from "../sequelize/models/organization-analysis";
 
 const sqsClient = new SQSClient({ region: "us-west-2" });
 const QUEUE_URL =
@@ -124,17 +125,20 @@ async function handleInviteSignup(credentials: any, dbModels: any) {
 
 async function createAnalysisQueueMessage(
   user: IUserInstance,
-  organization: IOrganizationInstance
+  organization: IOrganizationInstance,
+  organizationAnalysis: IOrganizationAnalysisInstance
 ) {
   try {
+
     const message = {
       taskType: "website-analysis",
       userId: user.id,
+      analysisSlug: organizationAnalysis.slug,
       organizationDomain: organization.domain,
       organizationSlug: organization.slug,
       organizationId: organization.id,
-      modelSlug: "gemini-2.5-flash",
-      modelProvider: "Google",
+      modelSlug: "gpt-5-mini",
+      modelProvider: "OpenAI",
     };
 
     const command = new SendMessageCommand({
@@ -160,7 +164,7 @@ export const authOptions = {
       },
       async authorize(credentials, req) {
         const dbModels = await getDBModels();
-        const { User, Organization, Project, Invite } = dbModels;
+        const { User, Organization, Project, OrganizationAnalysis } = dbModels;
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Invalid credentials");
         }
@@ -195,7 +199,8 @@ export const authOptions = {
               newUser
             );
 
-            createAnalysisQueueMessage(newUser, defaultOrganization);
+            const analysis = await OrganizationAnalysis.createWithOrganization(defaultOrganization)
+            createAnalysisQueueMessage(newUser, defaultOrganization, analysis);
 
             const defaultProject = await Project.createWithOrganization(
               `Default Project`,

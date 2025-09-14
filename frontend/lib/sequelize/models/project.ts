@@ -20,7 +20,7 @@ export interface IProjectInstance extends Model {
     options: BelongsToSetAssociationMixinOptions
   ): void;
   setOrganization(
-    user: IOrganizationInstance,
+    organization: IOrganizationInstance,
     options: BelongsToSetAssociationMixinOptions
   ): void;
   getOrganization(): Promise<IOrganizationInstance>;
