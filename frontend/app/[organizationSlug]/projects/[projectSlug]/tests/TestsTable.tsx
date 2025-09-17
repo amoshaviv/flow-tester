@@ -27,6 +27,8 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import Button from "@mui/material/Button";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
 import { visuallyHidden } from "@mui/utils";
 import AddNewTestModal from "./NewTestModal";
 import EditTestModal from "./EditTestModal";
@@ -225,6 +227,9 @@ export default function EnhancedTable({
   const [selectedModelToRun, setSelectedModelToRun] = React.useState<string>("gemini-2.5-flash");
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isRunning, setIsRunning] = React.useState(false);
+  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+  const [testRunSlug, setTestRunSlug] = React.useState<string>("");
+  const [snackbarTestSlug, setSnackbarTestSlug] = React.useState<string>("");
   const router = useRouter();
 
   const handleRequestSort = (
@@ -350,9 +355,20 @@ export default function EnhancedTable({
       );
 
       if (response.ok) {
+        const data = await response.json();
+        const runSlug = data.testRun?.slug;
+        
         if (onTestsChange) {
           onTestsChange();
         }
+        
+        // Show snackbar with link to test run (store test slug before clearing)
+        if (runSlug) {
+          setTestRunSlug(runSlug);
+          setSnackbarTestSlug(selectedTestToRun);
+          setSnackbarOpen(true);
+        }
+        
         setRunModalOpen(false);
         setSelectedTestToRun("");
         setSelectedVersionToRun("");
@@ -386,7 +402,7 @@ export default function EnhancedTable({
       <Paper sx={{ width: "100%", borderRadius: isInAnalysis ? 1 : 0 }}>
         <EnhancedTableToolbar onTestsChange={onTestsChange} isInAnalysis={isInAnalysis}/>
         <TableContainer>
-          <Table sx={{ minWidth: 750 }} aria-labelledby="tableTitle">
+          <Table aria-labelledby="tableTitle">
             <EnhancedTableHead
               order={order}
               orderBy={orderBy}
@@ -459,7 +475,7 @@ export default function EnhancedTable({
 
               {(!tests || tests.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
+                  <TableCell colSpan={isInAnalysis ? 4 : 9} align="center">
                     <Typography variant="body2" color="text.secondary">
                       No tests found
                     </Typography>
@@ -524,6 +540,33 @@ export default function EnhancedTable({
         onRunTest={handleConfirmRun}
         isRunning={isRunning}
       />
+      
+      {/* Success Snackbar for Test Run */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity="success"
+          sx={{ width: '100%' }}
+          action={
+            <Button
+              component={Link}
+              href={`/${organizationSlug}/projects/${projectSlug}/tests/${snackbarTestSlug}/runs/${testRunSlug}`}
+              color="inherit"
+              size="small"
+              sx={{ color: 'white', textDecoration: 'underline' }}
+            >
+              View Run
+            </Button>
+          }
+        >
+          Test run started successfully!
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

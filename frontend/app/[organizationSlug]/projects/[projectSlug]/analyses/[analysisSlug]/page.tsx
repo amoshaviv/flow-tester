@@ -99,7 +99,6 @@ export default async function AnalysisPage({
   // Get all existing tests
   const tests = await Test.findAllByProjectSlug(projectSlug);
 
-
   return (
     <Box>
       <Box
@@ -107,17 +106,17 @@ export default async function AnalysisPage({
           width: '100%',
           pl: { sm: 2 },
           pr: { xs: 1, sm: 2 },
-          py: 2,
+          py: 0.5,
           borderBottom: '1px solid',
           borderColor: 'divider',
         }}>
         <Grid container spacing={2} alignItems="center">
           <Grid size={{ xs: 12, md: 8 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
+            <Typography variant="h6">
               {capitalize(finalResult?.website) + ' Analysis' || "Website Analysis"}
             </Typography>
             {finalResult?.type && (
-              <Typography variant="h6" color="text.secondary" gutterBottom>
+              <Typography variant="caption" color="text.secondary" gutterBottom>
                 Category: {finalResult?.type}
               </Typography>
             )}

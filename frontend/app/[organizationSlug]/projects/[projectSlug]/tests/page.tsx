@@ -8,7 +8,8 @@ import Grid from "@mui/material/Grid";
 import NewTestModal from "./NewTestModal";
 import TestsClient from "./TestsClient";
 import { OrganizationAnalysisStatus } from "@/lib/sequelize/models/organization-analysis";
-import AnalysisCTACard from "../ProjectAnalysisCard";
+import { getAnalysisSummary } from "@/lib/s3";
+import AnalysisCTACard from "../AnalysisCTACard";
 
 const redirectToSignIn = () =>
   redirect("/authentication/signin", RedirectType.push);
@@ -35,24 +36,21 @@ export default async function Tests(props: {
     );
     if (!organization) return redirectToOrganizations();
 
-    const project = await Project.findBySlugAndOrganizationSlug(
-      projectSlug,
-      organizationSlug
-    );
-    if (!project) return redirectToOrganizations();
-
     const tests = await Test.findAllByProjectSlug(projectSlug);
     let latestAnalysis = null;
     let showAnalysisCTA = false;
+    let analysisResult = null;
     if (tests.length === 0) {
       latestAnalysis = await OrganizationAnalysis.findLatestByOrganization(organization);
       if (latestAnalysis?.status === OrganizationAnalysisStatus.Succeeded) {
+        const analysisSummary = await getAnalysisSummary(latestAnalysis.slug);
+        analysisResult = (analysisSummary && analysisSummary.final_result) ? JSON.parse(analysisSummary.final_result) : null;
         showAnalysisCTA = true
       }
     }
     return <>
       <TestsClient initialTests={tests} />
-      {showAnalysisCTA && latestAnalysis && <AnalysisCTACard analysisDomain={organization.domain} organizationSlug={organizationSlug} projectSlug={projectSlug} analysisSlug={latestAnalysis.slug} numberOfTestCases={10} />}
+      {showAnalysisCTA && latestAnalysis && <AnalysisCTACard analysisDomain={organization.domain} organizationSlug={organizationSlug} projectSlug={projectSlug} analysisSlug={latestAnalysis.slug} numberOfTestCases={analysisResult.tests.length} />}
     </>;
   } catch (err) {
     console.log(err);

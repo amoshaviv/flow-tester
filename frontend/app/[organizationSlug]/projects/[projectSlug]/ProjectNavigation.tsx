@@ -12,6 +12,8 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import AutoModeIcon from '@mui/icons-material/AutoMode';
 import SettingsIcon from "@mui/icons-material/Settings";
+import BugReportIcon from '@mui/icons-material/BugReport';
+import SchemaIcon from '@mui/icons-material/Schema';
 import Link from "next/link";
 
 interface ProjectNavigationProps {
@@ -26,6 +28,7 @@ export default function ProjectNavigation({ organizationSlug, projectSlug }: Pro
   const isTestsSelected = pathname === `/${organizationSlug}/projects/${projectSlug}/tests`;
   const isRunsSelected = pathname === `/${organizationSlug}/projects/${projectSlug}/runs`;
   const isAutomationSelected = pathname === `/${organizationSlug}/projects/${projectSlug}/automation`;
+  const isSuitesSelected = pathname === `/${organizationSlug}/projects/${projectSlug}/suites`;
   const isSettingsSelected = pathname === `/${organizationSlug}/projects/${projectSlug}/settings`;
 
   return (
@@ -49,9 +52,21 @@ export default function ProjectNavigation({ organizationSlug, projectSlug }: Pro
           href={`/${organizationSlug}/projects/${projectSlug}/tests`}
         >
           <ListItemIcon>
-            <AccountTreeIcon />
+            <BugReportIcon />
           </ListItemIcon>
           <ListItemText primary={"Tests"} />
+        </ListItemButton>
+      </ListItem>
+      <ListItem key={"Suites"} disablePadding>
+        <ListItemButton
+          selected={isSuitesSelected}
+          component={Link}
+          href={`/${organizationSlug}/projects/${projectSlug}/suites`}
+        >
+          <ListItemIcon>
+            <SchemaIcon />
+          </ListItemIcon>
+          <ListItemText primary={"Suites"} />
         </ListItemButton>
       </ListItem>
       <ListItem key={"Runs"} disablePadding>
