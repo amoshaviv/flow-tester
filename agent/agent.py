@@ -13,10 +13,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-save_conversation_path = os.path.dirname(os.path.abspath(__file__)) + '/log'
-
+save_video_path = os.path.dirname(os.path.abspath(__file__)) + '/video'
+print(save_video_path)
 browser = Browser(
     window_size={'width': 1280, 'height': 800},
+    record_video_dir=save_video_path
 )
 
 # Initialize S3 client

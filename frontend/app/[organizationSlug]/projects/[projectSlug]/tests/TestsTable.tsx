@@ -71,51 +71,61 @@ interface HeadCell {
   id: string;
   label: string;
   numeric: boolean;
+  hideInAnalysis: boolean;
 }
 
 const headCells: readonly HeadCell[] = [
   {
     id: "run",
     numeric: false,
+    hideInAnalysis: false,
     label: "",
   },
   {
     id: "title",
     numeric: false,
+    hideInAnalysis: false,
     label: "Title",
   },
   {
     id: "versions",
+    hideInAnalysis: true,
     numeric: true,
     label: "Versions",
   },
   {
     id: "totalRuns",
+    hideInAnalysis: true,
     numeric: true,
     label: "Total Runs",
   },
   {
     id: "pendingRuns",
+    hideInAnalysis: true,
     numeric: true,
     label: "Pending Runs",
   },
   {
     id: "successfulRuns",
+    hideInAnalysis: true,
     numeric: true,
     label: "Successful Runs",
   },
   {
     id: "failedRuns",
+    hideInAnalysis: true,
     numeric: true,
     label: "Failed Runs",
   },
   {
     id: "edit",
+    hideInAnalysis: false,
     numeric: true,
     label: "",
   },
   {
     id: "delete",
+    hideInAnalysis: false,
     numeric: false,
     label: "",
   },
@@ -125,12 +135,13 @@ interface EnhancedTableProps {
   onRequestSort: (event: React.MouseEvent<unknown>, property: string) => void;
   order: Order;
   orderBy: string;
+  isInAnalysis?: boolean;
 }
 
 const buttonCellStyle = { width: "28px" };
 
 function EnhancedTableHead(props: EnhancedTableProps) {
-  const { order, orderBy, onRequestSort } = props;
+  const { order, orderBy, onRequestSort, isInAnalysis } = props;
   const createSortHandler =
     (property: string) => (event: React.MouseEvent<unknown>) => {
       onRequestSort(event, property);
@@ -139,7 +150,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
   return (
     <TableHead>
       <TableRow>
-        {headCells.map((headCell) => (
+        {headCells.filter(headCell=>(!isInAnalysis || !headCell.hideInAnalysis)).map((headCell) => (
           <TableCell
             key={headCell.id}
             align={headCell.numeric ? "center" : "left"}
@@ -166,9 +177,10 @@ function EnhancedTableHead(props: EnhancedTableProps) {
 }
 interface EnhancedTableToolbarProps {
   onTestsChange?: () => void;
+  isInAnalysis?:boolean;
 }
 function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
-  const { onTestsChange } = props;
+  const { onTestsChange, isInAnalysis } = props;
   return (
     <Toolbar
       sx={{
@@ -182,9 +194,9 @@ function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
         id="tableTitle"
         component="div"
       >
-        Tests
+        {isInAnalysis && 'Current Project '} Tests
       </Typography>
-      <AddNewTestModal onTestCreated={onTestsChange} />
+      {!isInAnalysis && <AddNewTestModal onTestCreated={onTestsChange} />}
     </Toolbar>
   );
 }
@@ -193,11 +205,13 @@ export default function EnhancedTable({
   onTestsChange,
   organizationSlug,
   projectSlug,
+  isInAnalysis,
 }: {
   tests?: any[];
   onTestsChange?: () => void;
   organizationSlug: string;
   projectSlug: string;
+  isInAnalysis?: boolean;
 }) {
   const [order, setOrder] = React.useState<Order>("desc");
   const [orderBy, setOrderBy] = React.useState<string>("totalRuns");
@@ -369,21 +383,22 @@ export default function EnhancedTable({
 
   return (
     <Box sx={{ width: "100%" }}>
-      <Paper sx={{ width: "100%", mb: 2, borderRadius: 0}}>
-        <EnhancedTableToolbar onTestsChange={onTestsChange} />
+      <Paper sx={{ width: "100%", borderRadius: isInAnalysis ? 1 : 0 }}>
+        <EnhancedTableToolbar onTestsChange={onTestsChange} isInAnalysis={isInAnalysis}/>
         <TableContainer>
           <Table sx={{ minWidth: 750 }} aria-labelledby="tableTitle">
             <EnhancedTableHead
               order={order}
               orderBy={orderBy}
+              isInAnalysis={isInAnalysis}
               onRequestSort={handleRequestSort}
             />
             <TableBody>
               {sortedTests?.map((test, index) => {
                 return (
-                  <TableRow 
-                    hover 
-                    tabIndex={-1} 
+                  <TableRow
+                    hover
+                    tabIndex={-1}
                     key={test.slug}
                     onClick={() => handleRowClick(test)}
                     sx={{ cursor: 'pointer' }}
@@ -404,11 +419,13 @@ export default function EnhancedTable({
                       </Tooltip>
                     </TableCell>
                     <TableCell>{test.title}</TableCell>
-                    <TableCell align="center">{test.totalVersions}</TableCell>
-                    <TableCell align="center">{test.totalRuns}</TableCell>
-                    <TableCell align="center">{test.pendingRuns}</TableCell>
-                    <TableCell align="center">{test.successfulRuns}</TableCell>
-                    <TableCell align="center">{test.failedRuns}</TableCell>
+                    {!isInAnalysis && <>
+                      <TableCell align="center">{test.totalVersions}</TableCell>
+                      <TableCell align="center">{test.totalRuns}</TableCell>
+                      <TableCell align="center">{test.pendingRuns}</TableCell>
+                      <TableCell align="center">{test.successfulRuns}</TableCell>
+                      <TableCell align="center">{test.failedRuns}</TableCell>
+                    </>}
                     <TableCell>
                       <Tooltip title="Edit test">
                         <IconButton

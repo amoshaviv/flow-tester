@@ -36,9 +36,13 @@ export interface IOrganizationAnalysisModel
   createWithOrganization(
     organization: IOrganizationInstance
   ): Promise<IOrganizationAnalysisInstance>;
-  findByOrganizationId(
-    organizationId: number
-  ): Promise<IOrganizationAnalysisInstance[]>;
+  findLatestByOrganization(
+    organization: IOrganizationInstance
+  ): Promise<IOrganizationAnalysisInstance | null>;
+  findBySlugAndOrganization(
+    slug: string,
+    organization: IOrganizationInstance
+  ): Promise<IOrganizationAnalysisInstance | null>;
 }
 
 export default function defineOrganizationAnalysisModel(
@@ -75,18 +79,14 @@ export default function defineOrganizationAnalysisModel(
     });
   };
 
-  OrganizationAnalysis.findByOrganizationId =
-    async function findByOrganizationId(organizationId: number) {
-      return this.findAll({
+  OrganizationAnalysis.findLatestByOrganization =
+    async function findLatestByOrganization(
+      organization: IOrganizationInstance
+    ) {
+      return this.findOne({
         where: {
-          organizationId,
+          organization_id: organization.id,
         },
-        include: [
-          {
-            association: "organization",
-            attributes: ["id", "slug", "name", "domain"],
-          },
-        ],
         order: [["createdAt", "DESC"]],
       });
     };
@@ -100,6 +100,25 @@ export default function defineOrganizationAnalysisModel(
       });
       newAnalysis.setOrganization(organization, { save: false });
       return newAnalysis.save();
+    };
+
+  OrganizationAnalysis.findBySlugAndOrganization =
+    async function findBySlugAndOrganization(
+      slug: string,
+      organization: IOrganizationInstance
+    ) {
+      return OrganizationAnalysis.findOne({
+        where: { slug },
+        include: [
+          {
+            association: "organization",
+            attributes: ["slug", "name"],
+            where: {
+              id: organization.id,
+            },
+          },
+        ],
+      });
     };
 
   return OrganizationAnalysis;

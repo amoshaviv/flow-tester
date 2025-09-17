@@ -25,6 +25,27 @@ export interface TestRunSummary {
   errors: any[];
 }
 
+export interface AnalysisTestCase {
+  title: string;
+  description: string;
+  outputStructure: string;
+}
+
+export interface AnalysisFinalResult {
+  website: string;
+  type: string;
+  tests: AnalysisTestCase[];
+}
+
+export interface AnalysisSummary {
+  is_done: boolean;
+  has_errors: boolean;
+  model_thoughts: any[];
+  final_result: AnalysisFinalResult;
+  extracted_content: any;
+  errors: any[];
+}
+
 /**
  * Load test run summary data from S3
  * @param testRunSlug - The slug of the test run
@@ -61,6 +82,45 @@ export async function getTestRunSummary(testRunSlug: string): Promise<TestRunSum
     
     console.error(`Error fetching test run summary for ${testRunSlug}:`, error);
     throw new Error(`Failed to fetch test run summary: ${error.message}`);
+  }
+}
+
+/**
+ * Load analysis summary data from S3
+ * @param analysisSlug - The slug of the analysis
+ * @returns Promise<AnalysisSummary | null> - The analysis summary data or null if not found
+ */
+export async function getAnalysisSummary(analysisSlug: string): Promise<AnalysisSummary | null> {
+  try {
+    const key = `analyses/${analysisSlug}/analysis.json`;
+    
+    const command = new GetObjectCommand({
+      Bucket: S3_BUCKET_NAME,
+      Key: key,
+    });
+
+    const response = await s3Client.send(command);
+    
+    if (!response.Body) {
+      console.warn(`No body found for analysis summary: ${analysisSlug}`);
+      return null;
+    }
+
+    // Convert stream to string
+    const bodyContents = await response.Body.transformToString();
+    
+    // Parse JSON
+    const summaryData: AnalysisSummary = JSON.parse(bodyContents);
+    
+    return summaryData;
+  } catch (error: any) {
+    if (error.name === "NoSuchKey") {
+      console.warn(`Analysis summary not found: ${analysisSlug}`);
+      return null;
+    }
+    
+    console.error(`Error fetching analysis summary for ${analysisSlug}:`, error);
+    throw new Error(`Failed to fetch analysis summary: ${error.message}`);
   }
 }
 

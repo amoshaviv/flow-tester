@@ -12,6 +12,7 @@ import { kebabCase } from "change-case";
 import { IModels } from ".";
 import { IUserInstance } from "./user";
 import { IProjectInstance } from "./project";
+import { IOrganizationAnalysisInstance } from "./organization-analysis";
 import { UserRole } from "./users-organizations";
 export interface IOrganizationInstance extends Model {
   id: number;
@@ -29,6 +30,7 @@ export interface IOrganizationInstance extends Model {
     options: BelongsToManyAddAssociationMixinOptions
   ): Promise<void>;
   getProjects(): Promise<IProjectInstance[]>;
+  getAnalyses(): Promise<IOrganizationAnalysisInstance[]>;
 }
 
 export interface IOrganizationModel extends ModelStatic<IOrganizationInstance> {
@@ -99,7 +101,7 @@ export default function defineOrganizationModel(
   }) as IOrganizationModel;
 
   Organization.associate = function associate(models) {
-    const { User, Project, UsersOrganizations } = models;
+    const { User, Project, UsersOrganizations, OrganizationAnalysis } = models;
 
     this.belongsToMany(User, {
       as: "users",
@@ -109,6 +111,14 @@ export default function defineOrganizationModel(
 
     this.hasMany(Project, {
       as: "projects",
+      foreignKey: {
+        name: "organization_id",
+        allowNull: false,
+      },
+    });
+
+    this.hasMany(OrganizationAnalysis, {
+      as: "analyses",
       foreignKey: {
         name: "organization_id",
         allowNull: false,

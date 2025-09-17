@@ -9,15 +9,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 DB_URL='postgres://flow-tester-user:flow-tester-password@127.0.0.1:5432/flow-tester'
-
-class TestRunDB:
-    def __init__(self):
-        self.connection = None
-        self.db_url = DB_URL
-        
-        if not self.db_url:
-            raise ValueError("DB_URL environment variable is required")
-
 class AnalysisDB:
     def __init__(self):
         self.connection = None
@@ -126,7 +117,14 @@ class AnalysisDB:
         except Exception as e:
             logger.error(f"Error getting analysis status: {e}")
             return None
-    
+class TestRunDB:
+    def __init__(self):
+        self.connection = None
+        self.db_url = DB_URL
+        
+        if not self.db_url:
+            raise ValueError("DB_URL environment variable is required")
+            
     def connect(self):
         """Establish database connection"""
         try:

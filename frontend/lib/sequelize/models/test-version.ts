@@ -57,7 +57,7 @@ export default function defineTestVersionModel(
         },
       },
       description: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: false,
         validate: {
           notEmpty: true,
