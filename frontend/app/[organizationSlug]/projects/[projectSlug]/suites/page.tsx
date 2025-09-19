@@ -1,43 +1,54 @@
 import * as React from "react";
-import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
-import Link from "@mui/material/Link";
-import NextLink from "next/link";
-import { redirect, RedirectType } from 'next/navigation'
-
-import { getSession } from "@/lib/next-auth";
+import { redirect, RedirectType } from "next/navigation";
 import { getDBModels } from "@/lib/sequelize";
+import { getSession } from "@/lib/next-auth";
+import TestSuitesClient from "./TestSuitesClient";
 
-export default async function Home() {
+const redirectToSignIn = () =>
+  redirect("/authentication/signin", RedirectType.push);
+const redirectToOrganizations = () =>
+  redirect("/organizations", RedirectType.push);
+
+export default async function TestSuites(props: {
+  params: Promise<{ projectSlug: string; organizationSlug: string }>;
+}) {
   const session = await getSession();
   const email = session?.user?.email;
-  if(!email) return redirect('/authentication/signin', RedirectType.push);
+  if (!email) return redirectToSignIn();
 
+  const { params } = props;
+  const { projectSlug, organizationSlug } = await params;
   const dbModels = await getDBModels();
-  const { Organization, User } = dbModels;
-  
-  const user = await User.findByEmail(email);
-  if(!user) return redirect('/authentication/signin', RedirectType.push);
 
-  const organizations = await user.getOrganizations();
-  
-  if (!organizations || organizations.length === 0) return redirect('/organizations/create', RedirectType.push);
-  
+  const { TestSuite, Organization, Project } = dbModels;
+
+  try {
+    const organization = await Organization.findBySlugAndUserEmail(
+      organizationSlug,
+      email
+    );
+    if (!organization) return redirectToOrganizations();
+
+    const project = await Project.findBySlugAndOrganizationSlug(
+      projectSlug,
+      organizationSlug
+    );
+    if (!project) return redirectToOrganizations();
+
+    const testSuites = await TestSuite.findAllByProjectSlug(projectSlug);
+    
+    return (
+      <TestSuitesClient initialTestSuites={testSuites} />
+    );
+  } catch (err) {
+    console.log(err);
+  }
+
   return (
-    <Container maxWidth="lg">
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
-          Project Test Suites
-        </Typography>
-      </Box>
-    </Container>
+    <Box sx={{ p: 1.2, pl: 2, pr: 2 }}>
+      Error
+    </Box>
   );
 }

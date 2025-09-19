@@ -8,6 +8,10 @@ import defineProjectModel, { IProjectModel } from "./project";
 import defineTestModel, { ITestModel } from "./test";
 import defineTestVersionModel, { ITestVersionModel } from "./test-version";
 import defineTestRunVersionModel, { ITestRunModel } from "./test-run";
+import defineTestSuiteModel, { ITestSuiteModel } from "./test-suite";
+import defineTestSuiteVersionModel, { ITestSuiteVersionModel } from "./test-suite-version";
+import defineTestSuiteRunModel, { ITestSuiteRunModel } from "./test-suite-run";
+import defineTestSuiteTestModel, { ITestSuiteTestModel } from "./test-suite-test";
 import defineResetPasswordTokenModel from "./reset-password-token";
 import defineInviteModel, { IInviteModel } from "./invite";
 import defineOrganizationAnalysisModel, { IOrganizationAnalysisModel } from "./organization-analysis";
@@ -21,6 +25,10 @@ export interface IModels {
   Test: ITestModel;
   TestVersion: ITestVersionModel;
   TestRun: ITestRunModel;
+  TestSuite: ITestSuiteModel;
+  TestSuiteVersion: ITestSuiteVersionModel;
+  TestSuiteRun: ITestSuiteRunModel;
+  TestSuiteTest: ITestSuiteTestModel;
   Invite: IInviteModel;
 }
 
@@ -32,6 +40,10 @@ export default function defineModels(sequelizeConnection: Sequelize): IModels {
   const Test = defineTestModel(sequelizeConnection);
   const TestVersion = defineTestVersionModel(sequelizeConnection);
   const TestRun = defineTestRunVersionModel(sequelizeConnection);
+  const TestSuite = defineTestSuiteModel(sequelizeConnection);
+  const TestSuiteVersion = defineTestSuiteVersionModel(sequelizeConnection);
+  const TestSuiteRun = defineTestSuiteRunModel(sequelizeConnection);
+  const TestSuiteTest = defineTestSuiteTestModel(sequelizeConnection);
   const UsersOrganizations = defineUsersOrganizationsModel(sequelizeConnection);
   const Invite = defineInviteModel(sequelizeConnection);
 
@@ -44,6 +56,10 @@ export default function defineModels(sequelizeConnection: Sequelize): IModels {
     Test,
     TestVersion,
     TestRun,
+    TestSuite,
+    TestSuiteVersion,
+    TestSuiteRun,
+    TestSuiteTest,
     Invite,
   };
 }

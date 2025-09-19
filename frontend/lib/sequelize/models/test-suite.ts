@@ -9,13 +9,12 @@ import { ulid } from "ulid";
 import { IModels } from ".";
 import { IUserInstance } from "./user";
 import { IProjectInstance } from "./project";
-import { ITestVersionInstance } from "./test-version";
-import { TestRunStatus } from "./test-run";
+import { ITestSuiteVersionInstance } from "./test-suite-version";
 
-export interface ITestInstance extends Model {
+export interface ITestSuiteInstance extends Model {
   id: number;
   slug: string;
-  versions: ITestVersionInstance[];
+  versions: ITestSuiteVersionInstance[];
   setCreatedBy(
     user: IUserInstance,
     options: BelongsToSetAssociationMixinOptions
@@ -26,21 +25,21 @@ export interface ITestInstance extends Model {
   ): void;
 }
 
-export interface ITestModel extends ModelStatic<ITestInstance> {
+export interface ITestSuiteModel extends ModelStatic<ITestSuiteInstance> {
   associate(models: IModels): void;
   createWithUserAndProject(
     user: IUserInstance,
     project: IProjectInstance
-  ): Promise<ITestInstance>;
+  ): Promise<ITestSuiteInstance>;
   findAllByProjectSlug(projectSlug: string): Promise<any[]>;
   findBySlugAndProject(
-    testSlug: string,
+    suiteSlug: string,
     project: IProjectInstance
   ): Promise<any | null>;
 }
 
-export default function defineTestModel(sequelize: Sequelize): ITestModel {
-  const Test = sequelize.define("Test", {
+export default function defineTestSuiteModel(sequelize: Sequelize): ITestSuiteModel {
+  const TestSuite = sequelize.define("TestSuite", {
     slug: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -48,10 +47,10 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
         notEmpty: true,
       },
     },
-  }) as ITestModel;
+  }) as ITestSuiteModel;
 
-  Test.associate = function associate(models) {
-    const { User, Project, TestVersion, TestSuiteVersion, TestSuiteTest } = models;
+  TestSuite.associate = function associate(models) {
+    const { User, Project, TestSuiteVersion } = models;
 
     this.belongsTo(User, {
       as: "createdBy",
@@ -69,39 +68,32 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
       },
     });
 
-    this.hasMany(TestVersion, {
+    this.hasMany(TestSuiteVersion, {
       as: "versions",
       foreignKey: {
-        name: "test_id",
+        name: "test_suite_id",
         allowNull: false,
       },
     });
-
-    this.belongsToMany(TestSuiteVersion, {
-      through: TestSuiteTest,
-      as: "testSuiteVersions",
-      foreignKey: "test_id",
-      otherKey: "test_suite_version_id",
-    });
   };
 
-  Test.createWithUserAndProject = async function createWithUserAndProject(
+  TestSuite.createWithUserAndProject = async function createWithUserAndProject(
     user: IUserInstance,
     project: IProjectInstance
   ) {
     const slug = ulid();
-    const newTest = this.build({ slug });
-    newTest.setCreatedBy(user, { save: false });
-    newTest.setProject(project, { save: false });
-    await newTest.save();
+    const newTestSuite = this.build({ slug });
+    newTestSuite.setCreatedBy(user, { save: false });
+    newTestSuite.setProject(project, { save: false });
+    await newTestSuite.save();
 
-    return newTest;
+    return newTestSuite;
   };
 
-  Test.findAllByProjectSlug = async function findAllByProjectSlug(
+  TestSuite.findAllByProjectSlug = async function findAllByProjectSlug(
     projectSlug: string
   ) {
-    const tests = await this.findAll({
+    const testSuites = await this.findAll({
       include: [
         {
           association: "project",
@@ -121,10 +113,10 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
       ],
     });
 
-    return tests
-      .filter((test) => test.versions.length > 0)
-      .map((test) => {
-        const defaultTestVersion = test.versions.find(
+    return testSuites
+      .filter((testSuite) => testSuite.versions.length > 0)
+      .map((testSuite) => {
+        const defaultTestSuiteVersion = testSuite.versions.find(
           (version) => version.isDefault
         );
 
@@ -132,20 +124,20 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
         let pendingRuns = 0;
         let successfulRuns = 0;
         let failedRuns = 0;
-        test.versions.forEach((version) => {
-          version.runs.forEach((testRun) => {
+        testSuite.versions.forEach((version) => {
+          version.runs.forEach((testSuiteRun) => {
             totalRuns++;
-            if (testRun.status === TestRunStatus.Pending) pendingRuns++;
-            if (testRun.status === TestRunStatus.Succeeded) successfulRuns++;
-            if (testRun.status === TestRunStatus.Failed) failedRuns++;
+            if (testSuiteRun.status === "pending") pendingRuns++;
+            if (testSuiteRun.status === "succeeded") successfulRuns++;
+            if (testSuiteRun.status === "failed") failedRuns++;
           });
         });
 
         return {
-          slug: test.slug,
-          title: defaultTestVersion?.title,
-          description: defaultTestVersion?.description,
-          versions: test.versions
+          slug: testSuite.slug,
+          title: defaultTestSuiteVersion?.title,
+          description: defaultTestSuiteVersion?.description,
+          versions: testSuite.versions
             .sort((a, b) => a.number - b.number)
             .map((currentVersion) => ({
               slug: currentVersion.slug,
@@ -155,12 +147,12 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
               isDefault: currentVersion.isDefault,
             })),
           defaultVersion: {
-            slug: defaultTestVersion?.slug,
-            title: defaultTestVersion?.title,
-            description: defaultTestVersion?.description,
-            number: defaultTestVersion?.number,
+            slug: defaultTestSuiteVersion?.slug,
+            title: defaultTestSuiteVersion?.title,
+            description: defaultTestSuiteVersion?.description,
+            number: defaultTestSuiteVersion?.number,
           },
-          totalVersions: test.versions.length,
+          totalVersions: testSuite.versions.length,
           totalRuns,
           pendingRuns,
           successfulRuns,
@@ -169,12 +161,12 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
       });
   };
 
-  Test.findBySlugAndProject = async function findBySlugAndProject(
-    testSlug: string,
+  TestSuite.findBySlugAndProject = async function findBySlugAndProject(
+    suiteSlug: string,
     project: IProjectInstance
   ) {
-    const test = await this.findOne({
-      where: { slug: testSlug },
+    const testSuite = await this.findOne({
+      where: { slug: suiteSlug },
       include: [
         {
           association: "project",
@@ -207,9 +199,9 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
       ],
     });
 
-    if (!test || test.versions.length === 0) return null;
+    if (!testSuite || testSuite.versions.length === 0) return null;
 
-    const defaultTestVersion = test.versions.find(
+    const defaultTestSuiteVersion = testSuite.versions.find(
       (version) => version.isDefault
     );
 
@@ -218,21 +210,21 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
     let runningRuns = 0;
     let successfulRuns = 0;
     let failedRuns = 0;
-    test.versions.forEach((version) => {
-      version.runs.forEach((testRun) => {
+    testSuite.versions.forEach((version) => {
+      version.runs.forEach((testSuiteRun) => {
         totalRuns++;
-        if (testRun.status === TestRunStatus.Pending) pendingRuns++;
-        if (testRun.status === TestRunStatus.Running) runningRuns++;
-        if (testRun.status === TestRunStatus.Succeeded) successfulRuns++;
-        if (testRun.status === TestRunStatus.Failed) failedRuns++;
+        if (testSuiteRun.status === "pending") pendingRuns++;
+        if (testSuiteRun.status === "running") runningRuns++;
+        if (testSuiteRun.status === "succeeded") successfulRuns++;
+        if (testSuiteRun.status === "failed") failedRuns++;
       });
     });
 
     return {
-      slug: test.slug,
-      title: defaultTestVersion?.title,
-      description: defaultTestVersion?.description,
-      versions: test.versions
+      slug: testSuite.slug,
+      title: defaultTestSuiteVersion?.title,
+      description: defaultTestSuiteVersion?.description,
+      versions: testSuite.versions
         .sort((a, b) => a.number - b.number)
         .map((currentVersion) => ({
           slug: currentVersion.slug,
@@ -242,18 +234,18 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
           isDefault: currentVersion.isDefault,
         })),
       defaultVersion: {
-        slug: defaultTestVersion?.slug,
-        title: defaultTestVersion?.title,
-        description: defaultTestVersion?.description,
-        number: defaultTestVersion?.number,
+        slug: defaultTestSuiteVersion?.slug,
+        title: defaultTestSuiteVersion?.title,
+        description: defaultTestSuiteVersion?.description,
+        number: defaultTestSuiteVersion?.number,
       },
-      totalVersions: test.versions.length,
+      totalVersions: testSuite.versions.length,
       totalRuns,
       pendingRuns,
       runningRuns,
       successfulRuns,
       failedRuns,
-      runs: test.versions.flatMap((version) =>
+      runs: testSuite.versions.flatMap((version) =>
         version.runs.map((run) => ({
           slug: run.slug,
           status: run.status,
@@ -266,8 +258,8 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
             description: version.description,
             number: version.number,
             slug: version.slug,
-            test: {
-              slug: test.slug,
+            testSuite: {
+              slug: testSuite.slug,
             },
           },
           createdBy: {
@@ -280,5 +272,5 @@ export default function defineTestModel(sequelize: Sequelize): ITestModel {
     };
   };
 
-  return Test;
+  return TestSuite;
 }

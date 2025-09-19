@@ -8,58 +8,59 @@ import {
 import { ulid } from "ulid";
 import { IModels } from ".";
 import { IUserInstance } from "./user";
-import { ITestVersionInstance } from "./test-version";
+import { ITestSuiteVersionInstance } from "./test-suite-version";
 import { IProjectInstance } from "./project";
+import { ITestRunInstance } from "./test-run";
 
-export enum TestRunStatus {
+export enum TestSuiteRunStatus {
   Pending = "pending",
   Running = "running",
   Failed = "failed",
   Succeeded = "succeeded",
 }
 
-export interface ITestRunInstance extends Model {
+export interface ITestSuiteRunInstance extends Model {
   id: number;
   slug: string;
-  status: TestRunStatus;
-  resultsURL: string;
+  status: TestSuiteRunStatus;
   modelSlug?: string;
   modelProvider?: string;
-  version: ITestVersionInstance;
+  version: ITestSuiteVersionInstance;
   createdBy: IUserInstance;
   createdAt: Date;
   updatedAt: Date;
+  testRuns: ITestRunInstance[];
   setCreatedBy(
     user: IUserInstance,
     options: BelongsToSetAssociationMixinOptions
   ): void;
   setVersion(
-    version: ITestVersionInstance,
+    version: ITestSuiteVersionInstance,
     options: BelongsToSetAssociationMixinOptions
   ): void;
 }
 
-export interface ITestRunModel extends ModelStatic<ITestRunInstance> {
+export interface ITestSuiteRunModel extends ModelStatic<ITestSuiteRunInstance> {
   associate(models: IModels): void;
   createWithUserAndVersion(
     user: IUserInstance,
-    version: ITestVersionInstance,
+    version: ITestSuiteVersionInstance,
     modelSlug: string,
     modelProvider: string
-  ): Promise<ITestRunInstance>;
+  ): Promise<ITestSuiteRunInstance>;
   findAllByProject(project: IProjectInstance): Promise<any[]>;
   findBySlug(
     slug: string,
-    testSlug: string,
+    suiteSlug: string,
     project: IProjectInstance
-  ): Promise<ITestRunInstance | null>;
+  ): Promise<ITestSuiteRunInstance | null>;
 }
 
-export default function defineTestRunModel(
+export default function defineTestSuiteRunModel(
   sequelize: Sequelize
-): ITestRunModel {
-  const TestRun = sequelize.define(
-    "TestRun",
+): ITestSuiteRunModel {
+  const TestSuiteRun = sequelize.define(
+    "TestSuiteRun",
     {
       slug: {
         type: DataTypes.STRING,
@@ -74,10 +75,6 @@ export default function defineTestRunModel(
         validate: {
           notEmpty: true,
         },
-      },
-      resultsURL: {
-        type: DataTypes.STRING,
-        field: "results_url",
       },
       modelSlug: {
         type: DataTypes.STRING,
@@ -95,12 +92,12 @@ export default function defineTestRunModel(
       },
     },
     {
-      tableName: "tests_runs",
+      tableName: "test_suites_runs",
     }
-  ) as ITestRunModel;
+  ) as ITestSuiteRunModel;
 
-  TestRun.associate = function associate(models) {
-    const { User, TestVersion, TestSuiteRun } = models;
+  TestSuiteRun.associate = function associate(models) {
+    const { User, TestSuiteVersion, TestRun } = models;
 
     this.belongsTo(User, {
       as: "createdBy",
@@ -110,16 +107,16 @@ export default function defineTestRunModel(
       },
     });
 
-    this.belongsTo(TestVersion, {
+    this.belongsTo(TestSuiteVersion, {
       as: "version",
       foreignKey: {
-        name: "version_id",
+        name: "test_suite_version_id",
         allowNull: false,
       },
     });
 
-    this.belongsTo(TestSuiteRun, {
-      as: "testSuiteRun",
+    this.hasMany(TestRun, {
+      as: "testRuns",
       foreignKey: {
         name: "test_suite_run_id",
         allowNull: true,
@@ -127,29 +124,29 @@ export default function defineTestRunModel(
     });
   };
 
-  TestRun.createWithUserAndVersion = async function createWithUserAndVersion(
+  TestSuiteRun.createWithUserAndVersion = async function createWithUserAndVersion(
     user: IUserInstance,
-    version: ITestVersionInstance,
+    version: ITestSuiteVersionInstance,
     modelSlug: string,
     modelProvider: string
   ) {
     const slug = ulid();
-    const newTestRun = this.build({
+    const newTestSuiteRun = this.build({
       slug,
-      status: TestRunStatus.Pending,
+      status: TestSuiteRunStatus.Pending,
       modelSlug,
       modelProvider,
     });
-    newTestRun.setCreatedBy(user, { save: false });
-    newTestRun.setVersion(version, { save: false });
-    await newTestRun.save();
+    newTestSuiteRun.setCreatedBy(user, { save: false });
+    newTestSuiteRun.setVersion(version, { save: false });
+    await newTestSuiteRun.save();
 
-    return newTestRun;
+    return newTestSuiteRun;
   };
 
-  TestRun.findBySlug = async function findBySlug(
+  TestSuiteRun.findBySlug = async function findBySlug(
     slug: string,
-    testSlug: string,
+    suiteSlug: string,
     project: IProjectInstance
   ) {
     return this.findOne({
@@ -160,9 +157,9 @@ export default function defineTestRunModel(
           attributes: ["title", "description", "number", "slug", "isDefault"],
           include: [
             {
-              association: "test",
+              association: "testSuite",
               attributes: ["slug"],
-              where: { slug: testSlug, project_id: project.id },
+              where: { slug: suiteSlug, project_id: project.id },
               required: true,
             },
           ],
@@ -171,22 +168,44 @@ export default function defineTestRunModel(
           association: "createdBy",
           attributes: ["email", "displayName", "profileImageURL"],
         },
+        {
+          association: "testRuns",
+          attributes: [
+            "slug",
+            "status",
+            "modelSlug",
+            "modelProvider",
+            "createdAt",
+            "updatedAt",
+          ],
+          include: [
+            {
+              association: "version",
+              attributes: ["title", "description", "number", "slug"],
+              include: [
+                {
+                  association: "test",
+                  attributes: ["slug"],
+                },
+              ],
+            },
+          ],
+        },
       ],
     });
   };
 
-  TestRun.findAllByProject = async function findAllByProject(
+  TestSuiteRun.findAllByProject = async function findAllByProject(
     project: IProjectInstance
   ) {
-    // Fetch all test runs for this project
-    const testRuns = await TestRun.findAll({
+    const testSuiteRuns = await TestSuiteRun.findAll({
       include: [
         {
           association: "version",
           attributes: ["id", "title", "description", "number", "slug"],
           include: [
             {
-              association: "test",
+              association: "testSuite",
               attributes: ["id", "slug"],
               where: { project_id: project.id },
               required: true,
@@ -202,30 +221,29 @@ export default function defineTestRunModel(
       order: [["updatedAt", "DESC"]],
     });
 
-    return testRuns.map((testRun) => ({
-      slug: testRun.slug,
-      modelSlug: testRun.modelSlug,
-      modelProvider: testRun.modelProvider,
-      status: testRun.status,
-      resultsURL: testRun.resultsURL,
-      createdAt: testRun.createdAt,
-      updatedAt: testRun.updatedAt,
+    return testSuiteRuns.map((testSuiteRun) => ({
+      slug: testSuiteRun.slug,
+      modelSlug: testSuiteRun.modelSlug,
+      modelProvider: testSuiteRun.modelProvider,
+      status: testSuiteRun.status,
+      createdAt: testSuiteRun.createdAt,
+      updatedAt: testSuiteRun.updatedAt,
       version: {
-        title: testRun.version.title,
-        description: testRun.version.description,
-        number: testRun.version.number,
-        slug: testRun.version.slug,
-        test: {
-          slug: testRun.version.test.slug,
+        title: testSuiteRun.version.title,
+        description: testSuiteRun.version.description,
+        number: testSuiteRun.version.number,
+        slug: testSuiteRun.version.slug,
+        testSuite: {
+          slug: testSuiteRun.version.testSuite.slug,
         },
       },
       createdBy: {
-        email: testRun.createdBy.email,
-        displayName: testRun.createdBy.displayName,
-        profileImageURL: testRun.createdBy.profileImageURL,
+        email: testSuiteRun.createdBy.email,
+        displayName: testSuiteRun.createdBy.displayName,
+        profileImageURL: testSuiteRun.createdBy.profileImageURL,
       },
     }));
   };
 
-  return TestRun;
+  return TestSuiteRun;
 }
